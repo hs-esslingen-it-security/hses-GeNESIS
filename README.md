@@ -14,10 +14,18 @@ Since GeNESIS can also optionally create rulesets with anomalies, it's suited fo
 ## Licence and Citation
 GeNESIS is licensed under the terms of the MIT license.
 
-Our paper has been submitted to the [EFTA 2024](https://2024.ieee-etfa.org).
+Our paper has been accepted and presented at the [EFTA 2024](https://2024.ieee-etfa.org). You can find a copy of the paper [here](https://github.com/hs-esslingen-it-security/hses-GeNESIS/blob/main/genesis-etfa-2024.pdf).
 If you use GeNESIS in one of your papers, please cite:
 ```
-# TODO: Include bibtex here
+
+@INPROCEEDINGS{bechtel2024,
+    author={Bechtel, Lukas and Müller, Samuel and Menth, Michael and Heer, Tobias},
+    title={{GeNESIS: Generator for Network Evaluation Scenarios of Industrial Systems}}, 
+    booktitle={{IEEE International Conference on Emerging Technologies and Factory Automation (ETFA)}}, 
+    year={2024},
+    month = sep,
+    address = {Padova, Italy}
+}
 ```
 
 ## Installation
