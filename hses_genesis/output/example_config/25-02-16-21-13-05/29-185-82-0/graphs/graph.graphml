@@ -1,0 +1,362 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d7" for="node" attr.name="ruleset" attr.type="string" />
+  <key id="d6" for="node" attr.name="default_action" attr.type="string" />
+  <key id="d5" for="node" attr.name="ip" attr.type="string" />
+  <key id="d4" for="node" attr.name="subnet" attr.type="string" />
+  <key id="d3" for="node" attr.name="services" attr.type="string" />
+  <key id="d2" for="node" attr.name="role" attr.type="string" />
+  <key id="d1" for="node" attr.name="branch" attr.type="string" />
+  <key id="d0" for="node" attr.name="layer" attr.type="string" />
+  <graph edgedefault="undirected">
+    <node id="SW0">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">SSH</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.1</data>
+    </node>
+    <node id="SW1">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">Webserver,SSH</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.2</data>
+    </node>
+    <node id="SW2">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">SSH,NETCONF</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.3</data>
+    </node>
+    <node id="SW3">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">Webserver,NETCONF</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.4</data>
+    </node>
+    <node id="SV0">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">SERVER</data>
+      <data key="d3">IP_Camera,SSH</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.5</data>
+    </node>
+    <node id="SV1">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">SERVER</data>
+      <data key="d3">IP_Camera,NETCONF</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.6</data>
+    </node>
+    <node id="C0">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">CONTROLLER</data>
+      <data key="d3">OPC_UA,Webserver,Profinet,EtherCAT,SSH</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.7</data>
+    </node>
+    <node id="C1">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">CONTROLLER</data>
+      <data key="d3">OPC_UA,Webserver,EtherCAT</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.8</data>
+    </node>
+    <node id="I0">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">IP_Camera,SSH</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.9</data>
+    </node>
+    <node id="I1">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">Webserver,IP_Camera</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.10</data>
+    </node>
+    <node id="I2">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">IP_Camera,SSH</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.11</data>
+    </node>
+    <node id="I3">
+      <data key="d0">CONNECTIVITY</data>
+      <data key="d1">0</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">Webserver,SSH,IP_Camera</data>
+      <data key="d4">192.0.0.0/27</data>
+      <data key="d5">192.0.0.12</data>
+    </node>
+    <node id="SW4">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">Webserver,NETCONF</data>
+      <data key="d4">192.0.0.32/27</data>
+      <data key="d5">192.0.0.33</data>
+    </node>
+    <node id="SW5">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">NETCONF,SSH</data>
+      <data key="d4">192.0.0.32/27</data>
+      <data key="d5">192.0.0.34</data>
+    </node>
+    <node id="R0">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">ROUTER</data>
+      <data key="d3">Webserver,SSH</data>
+      <data key="d4">192.0.0.32/27,192.0.0.0/27</data>
+      <data key="d5">192.0.0.35,192.0.0.13</data>
+      <data key="d6">DROP</data>
+      <data key="d7">-s 192.0.0.36 -d 192.0.0.69 -p tcp --sport * --dport 80 -j ACCEPT
+-s 192.0.0.69 -d 192.0.0.36 -p tcp --sport 80 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p tcp --sport * --dport 80 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p tcp --sport 80 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.68 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.37 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.5 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.37 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.69 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.69 -d 192.0.0.37 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.37 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.8 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.7 -p tcp --sport * --dport 80 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.36 -p tcp --sport 80 --dport * -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.7 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.36 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.8 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.37 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.39 -d 192.0.0.5 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.39 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.8 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.36 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.37 -p tcp --sport * --dport 80 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.8 -p tcp --sport 80 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.37 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.5 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.8 -p tcp --sport * --dport 80 -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.36 -p tcp --sport 80 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.8 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.37 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.36 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.7 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.36 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.8 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.37 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.8 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.39 -d 192.0.0.5 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.39 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.36 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.7 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.36 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.8 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.6 -d 192.0.0.39 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.39 -d 192.0.0.6 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.7 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.36 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.5 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.36 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.7 -p tcp --sport * --dport 4840 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.37 -p tcp --sport 4840 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.8 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.37 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.36 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.7 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.36 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.36 -d 192.0.0.5 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.39 -d 192.0.0.6 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.6 -d 192.0.0.39 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.39 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.39 -d 192.0.0.5 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.37 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.68 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.39 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.39 -d 192.0.0.5 -p tcp --sport 554 --dport * -j ACCEPT</data>
+    </node>
+    <node id="C2">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">CONTROLLER</data>
+      <data key="d3">SSH,OPC_UA,Webserver</data>
+      <data key="d4">192.0.0.32/27</data>
+      <data key="d5">192.0.0.36</data>
+    </node>
+    <node id="C3">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">CONTROLLER</data>
+      <data key="d3">OPC_UA,Webserver,EtherCAT,SSH</data>
+      <data key="d4">192.0.0.32/27</data>
+      <data key="d5">192.0.0.37</data>
+    </node>
+    <node id="O0">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">OT_END_DEVICE</data>
+      <data key="d3">Profinet,Webserver</data>
+      <data key="d4">192.0.0.32/27</data>
+      <data key="d5">192.0.0.38</data>
+    </node>
+    <node id="I4">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.0</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">SSH,Webserver,IP_Camera</data>
+      <data key="d4">192.0.0.32/27</data>
+      <data key="d5">192.0.0.39</data>
+    </node>
+    <node id="SW6">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">SSH,Webserver,NETCONF</data>
+      <data key="d4">192.0.0.64/27</data>
+      <data key="d5">192.0.0.65</data>
+    </node>
+    <node id="SW7">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">SWITCH</data>
+      <data key="d3">NETCONF,Webserver,SSH</data>
+      <data key="d4">192.0.0.64/27</data>
+      <data key="d5">192.0.0.66</data>
+    </node>
+    <node id="R1">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">ROUTER</data>
+      <data key="d3">SSH</data>
+      <data key="d4">192.0.0.64/27,192.0.0.0/27</data>
+      <data key="d5">192.0.0.67,192.0.0.14</data>
+      <data key="d6">DROP</data>
+      <data key="d7">-s 192.0.0.36 -d 192.0.0.69 -p tcp --sport * --dport 80 -j ACCEPT
+-s 192.0.0.69 -d 192.0.0.36 -p tcp --sport 80 --dport * -j ACCEPT
+-s 192.0.0.6 -d 192.0.0.71 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.71 -d 192.0.0.6 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.7 -p udp --sport * --dport 34963 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.68 -p udp --sport 34963 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.70 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.70 -d 192.0.0.5 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.68 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.37 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.68 -p udp --sport * --dport 34964 -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.7 -p udp --sport 34964 --dport * -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.69 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.69 -d 192.0.0.37 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.71 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.71 -d 192.0.0.5 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.8 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.68 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.71 -d 192.0.0.5 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.71 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.69 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.69 -d 192.0.0.7 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.71 -d 192.0.0.5 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.71 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.71 -d 192.0.0.6 -p tcp --sport * --dport 554 -j ACCEPT
+-s 192.0.0.6 -d 192.0.0.71 -p tcp --sport 554 --dport * -j ACCEPT
+-s 192.0.0.5 -d 192.0.0.71 -p tcp --sport * --dport 22 -j ACCEPT
+-s 192.0.0.71 -d 192.0.0.5 -p tcp --sport 22 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.68 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.8 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.8 -d 192.0.0.69 -p tcp --sport * --dport 443 -j ACCEPT
+-s 192.0.0.69 -d 192.0.0.8 -p tcp --sport 443 --dport * -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.68 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.7 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.7 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.7 -d 192.0.0.68 -p udp --sport 34980 --dport * -j ACCEPT
+-s 192.0.0.68 -d 192.0.0.37 -p udp --sport * --dport 34980 -j ACCEPT
+-s 192.0.0.37 -d 192.0.0.68 -p udp --sport 34980 --dport * -j ACCEPT</data>
+    </node>
+    <node id="C4">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">CONTROLLER</data>
+      <data key="d3">Profinet,EtherCAT</data>
+      <data key="d4">192.0.0.64/27</data>
+      <data key="d5">192.0.0.68</data>
+    </node>
+    <node id="C5">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">CONTROLLER</data>
+      <data key="d3">Webserver</data>
+      <data key="d4">192.0.0.64/27</data>
+      <data key="d5">192.0.0.69</data>
+    </node>
+    <node id="I5">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">SSH</data>
+      <data key="d4">192.0.0.64/27</data>
+      <data key="d5">192.0.0.70</data>
+    </node>
+    <node id="I6">
+      <data key="d0">PROCESS</data>
+      <data key="d1">0.1</data>
+      <data key="d2">IT_END_DEVICE</data>
+      <data key="d3">SSH,IP_Camera,Webserver</data>
+      <data key="d4">192.0.0.64/27</data>
+      <data key="d5">192.0.0.71</data>
+    </node>
+    <edge source="SW0" target="SW1" />
+    <edge source="SW0" target="C1" />
+    <edge source="SW0" target="I0" />
+    <edge source="SW0" target="R0" />
+    <edge source="SW1" target="SW2" />
+    <edge source="SW1" target="I1" />
+    <edge source="SW1" target="I2" />
+    <edge source="SW2" target="SW3" />
+    <edge source="SW2" target="SV0" />
+    <edge source="SW2" target="C0" />
+    <edge source="SW3" target="SV1" />
+    <edge source="SW3" target="I3" />
+    <edge source="SW3" target="R1" />
+    <edge source="SW4" target="SW5" />
+    <edge source="SW4" target="C2" />
+    <edge source="SW4" target="O0" />
+    <edge source="SW5" target="R0" />
+    <edge source="SW5" target="C3" />
+    <edge source="SW5" target="I4" />
+    <edge source="SW6" target="SW7" />
+    <edge source="SW6" target="C4" />
+    <edge source="SW6" target="I5" />
+    <edge source="SW7" target="R1" />
+    <edge source="SW7" target="C5" />
+    <edge source="SW7" target="I6" />
+  </graph>
+</graphml>

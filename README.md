@@ -14,10 +14,10 @@ Since GeNESIS can also optionally create rulesets with anomalies, it's suited fo
 ## Licence and Citation
 GeNESIS is licensed under the terms of the MIT license.
 
-Our paper has been accepted and presented at the [EFTA 2024](https://2024.ieee-etfa.org). You can find a copy of the paper [here](https://github.com/hs-esslingen-it-security/hses-GeNESIS/blob/main/genesis-etfa-2024.pdf).
+Our paper has been accepted and presented at the [EFTA 2024](https://2024.ieee-etfa.org).
+You can find a copy of the paper [here](https://github.com/hs-esslingen-it-security/hses-GeNESIS/blob/main/genesis-etfa-2024.pdf).
 If you use GeNESIS in one of your papers, please cite:
 ```
-
 @INPROCEEDINGS{bechtel2024,
     author={Bechtel, Lukas and Müller, Samuel and Menth, Michael and Heer, Tobias},
     title={{GeNESIS: Generator for Network Evaluation Scenarios of Industrial Systems}}, 
@@ -36,6 +36,13 @@ pip install -r requirements.txt
 pip install .
 ```
 
+To check whether GeNESIS was installed correctly just execute:
+```
+python3 hses_genesis/main.py
+```
+This will start a generation cycle with the [`example_config.json`](./hses_genesis/resources/example_config.json) file and save the outputs in `<hses_genesis/output/example_config/>`.
+During the generation, GeNESIS keeps you up to date about current processes and its general progress.
+
 ## Execution
 GeNESIS can be launched with several different arguments:
 ```
@@ -44,164 +51,128 @@ optional arguments:
   -j JSON, --json JSON  location of json configuration file.
   -g GENESIS_TAG, --genesis_tag GENESIS_TAG
                         GeNESIS-TAG of a previous run.
-  -d, --default_run     start GeNESIS with the default configuration (./resources/example_config.json).
   -n, --new_configuration
                         start the Interactive GeNESIS Configuration Generator to create a new configuration.
   -o OUTPUT_LOCATION, --output_location OUTPUT_LOCATION
                         set the output location for generated files.
+  -yang, --export_yang_files
+                        use this to export all outputs in a single yang.json file in an ietf conform format.
+  -ipt, --export_iptables_files
+                        use this to export all rulesets in iptable-save format.
+  -img, --export_graph_images
+                        use this to export an image of the network topology on creation.
 ```
-Normally, if no arguments are given, GeNESIS will generate a random new configuration before its actual execution.
-The arguments `-j, -g, -d`, and `-n` define different possibilities to provide GeNESIS with specific configurations instead of random ones.
+Normally, if no arguments are provided, GeNESIS will start a generation cycle using the example config located [here](./hses_genesis/resources/example_config.json).
+The arguments `-j, -g`, and `-n` define different possibilities to provide GeNESIS with other configurations.
 With the help of the `-j` flag, you can specify the location of a valid .json configuration file.
 If you don't want to bother yourself with the syntax of the configuration files yet, we recommend using the `-n` tag.
 This will start the Interactive GeNESIS Configuration Generator before the actual execution of GeNESIS, i.e., you will be guided through the creation process of a new configuration file.
-Alternatively, if another run has already been executed, you may provide the provided GeNESIS-TAG from that run with the `-g` flag.
-Notice, that the genesis tag must have the same version number (`GeNESIS:<version_number> ...`) as your GeNESIS distribution to guarantee correct reproduction of the previous run.
-If `-d` is provided, GeNESIS will run with the default settings as specified in [./GeNESIS/resources/example_config.json](./GeNESIS/resources/example_config.json).
+Alternatively, if another run has already been executed, you may provide the GeNESIS-TAG of that run with the `-g` flag.
+This will result in GeNESIS recreating the exact same outputs as in the referenced run.
+Hence, the genesis tag is useful to exchange information about data without actually providing the data.
 
-The output of each generation iteration of GeNESIS is saved within an output folder created by GeNESIS inside the [GeNESIS folder](./GeNESIS/).
-However, if you want to save your output in a specific location, you may specify that path with the `-o` flag.
+> Notice, that the genesis tag must have the same version number (`GeNESIS:<version_number> ...`) as your GeNESIS distribution to guarantee correct reproduction of the previous run.
 
-## Run Configuration
-GeNESIS generation process is customizable by providing a valid .json configuration file.
-An example of this can be found [here](./GeNESIS/resources/example_config.json).
-In the following, the effects of each parameter on the generation process will be discussed briefly.
+The output of each generation iteration of GeNESIS is saved within an output folder created by GeNESIS inside the [GeNESIS output folder](./hses_genesis/output).
+However, if you want to save your output in a specific location, you can specify that path with the `-o` flag.
 
-### Reproducibility
-Reproducibility is one, if not the central design philosophy of GeNESIS.
-Hence, each random decision from GeNESIS is selected with the help of customizable seeds.
-The overall generation process is separated into three logical steps:
-1) generation of topology,
-2) development of communication relations, and
-3) generation of network configurations.
+By default, GeNESIS outputs a `graph.graphml`-file including all informations about the generated network topology and security configurations.
+The generated communication is stored in a separate `packets.csv`-file.
+However, GeNESIS also provides some additional, optional output formats:
+- By providing the `-yang` flag, GeNESIS outputs a ietf format conform yang.json file describing the generated network topology.
+- By providing the `-ipt` flag, GeNESIS outputs a `iptables-save` file for each router, containing the generated security configurations.
+- By providing the `-img` flag, GeNESIS outpus a vistual representation of the generated network topology as .png and .jpg.
 
-Within the configuration.json file, you can specify a specific seed for each of these steps.
-In contrast to all other parameters, you do not have to specify any seed to create a valid configuration file.
-If you don't specify a seed in the configuration.json file, GeNESIS chooses a random seed at the beginning of execution.
-Additionally, you can define the number of iterations of a specific step.
-However, notice GeNESIS will increase the corresponding seed in every iteration of a step to provide new results in every iteration.
+## Configurability
+The GeNESIS generation process is customizable by providing a valid .json configuration-file.
+Examples of valid configurations are available [here](./hses_genesis/resources).
+
+As GeNESIS basically operates in three different, consecutive steps, i.e., topology generation, communication generation, and security generation, the configuration file is also structured accordingly.
+In the following sections, we will discuss the effects of each configurable parameter in each part of the configuration file briefly.
+
+### Topology
+The topology part of the configuration file contains iterations and layer definitions:
 ```
-...
-"steps": {
-   "TOPOLOGY": {
-      "iterations": 1,
-      "seed": 1
-   },
-   "COMMUNICATION_RELATIONS": {
-      "iterations": 1,
-      "seed": 1
-   },
-   "NETWORK_CONFIGURATIONS": {
-      "iterations": 1,
-      "seed": 1
-   }
-},
-...
+"topology": {
+   "iterations": X,
+   "layer_definitions": [
+      ...
+   ]
+}
 ```
+As for every step, you can specify the topology generation step to be executed multiple times, i.e., setting `"iterations": 2` will cause GeNESIS to generate 2 different topologies based on the given configurations.
 
-## Topology
-The generated networks are organized in a tree-like structure with a customizable depth.
-Each layer of the tree has an associated type of ether *connectivity*, *aggregated control*, or *process*.
-The *connectivity* type is dedicated for the root layer only and the *process* type is for the last layer, i.e., where the leave nodes of the tree are located.
-Every layer in-between is of type *aggregated control*.
-To visualize this concept:
-
+For each layer definition, you can specify:
 ```
-                            connectivity
-                         /                 \
-               aggregated control       aggregated control
-                   /     \                 /       \
-            process       process   process         process
-```
-Each node (hereinafter referred to as **layer instance**) in this structure is a self-contained subnet, connected to other layer instances by routers.
-This structure reflects common industry topologies and is represented accordingly in the [example configuration files](./GeNESIS/resources).
-However, you can also define other setups with different sequences of layer types in your config file - which wouldn't be that realistic though.
-But don't worry, we don't judge.
-
-The depth of your tree-like network is given implicitly by the number of layer definitions you provide within your configuration file:
-```
-...
-"layer_definitions": [
+"layer_definitions":
    ...
    {
-      "layer_type": "AGGREGATED_CONTROL",
-      "per_upper_layer": 2,
-      "switch_count": 2,
-      "devices_per_switch": 2,
-      "structure": {
-         "STAR": 0,
-         "RING": 9,
-         "LINE": 1,
-         "MESH": 0
-      }
+      "per_upper_layer": X,
+      "switch_count": X,
+      "max_hosts_per_switch": X,
+      "host_types": {
+         "SERVER": X,
+         "IT_END_DEVICE": X,
+         "OT_END_DEVICE": X,
+         "CONTROLLER": X
+      },
+      "structure_distribution": {
+         "STAR": X,
+         "RING": X,
+         "LINE": X,
+         "MESH": X
+      },
+      "repetitions": X
    },
    ...
-]
-...
 ```
 
-As depicted, per layer definition you can configure different other attributes besides its type.
-The following are the detailed descriptions of each configuration parameter:
-- `per_upper_layer`: the number of layer instances generated per layer instance in the next upper layer.
-- `switch_count`: the number of additional layers created in each layer instance in addition to default switches needed for basic connectivity.
-- `devices_per_switch`: the number of end devices connected to each switch.
-- `structure`: description of the weighted probabilities in which specific structures are chosen for layer instances. In the given example 9/10 layer instances are instantiated as a ring network and every 10<sup>th</sup> layer instance is generated as a line network.
-
-### Device Roles
-
-GeNESIS supports six different device roles:
-routers, servers, controllers, switches, IT devices, and OT devices.
-The number of devices with four of these roles can be defied in your configuration.json:
-```
-...
-"layer_device_count_configuration": {
-   "CONNECTIVITY": {
-      "SERVER": 1,
-      "IT_END_DEVICE": 0,
-      "OT_END_DEVICE": 0,
-      "CONTROLLER": [0,0]
-   },
-   ...
-}
-...
-```
-- `SERVER`: This is a fixed value, i.e., what you type in is the number of switches you get per layer instance.
-- `CONTROLLER`: This is a random range, i.e. you can specify the two endpoints and GeNESIS will generate a randomized number of devices in that range.
-To get a fixed number of controllers instead, be sure to supply the same number in both endpoints.
-- `IT/OT_END_DEVICE`: this is a truth value (0 or 1).
-The actual number of IT/OT devices depends mainly on the number of switches in each layer instance, as well as the number of devices per switch.
-However, you can choose to disable a certain type of end device in a layer instance by passing a 0 for IT/OT end devices.
-If you want a specific type to occur set it to 1 instead.
-
-|Role|(Normally) contained in|Count Customizable|Count per Layer Instance|
-|:-:|:-:|:-:|:-|
-|Router(s)|control, field||**1** for star and line. **2** for ring and mesh (redundancy).|
-|Servers|enterprise|X|User-defined value in layer device count configuration.|
-|Controller(s)|every layer|X|Random range with user-defined endpoints in layer device count configuration.|
-|Switche(s)|every layer|X|Base count depends on the number of next child layer instances. A number of additional switches can be defined by users in layer definition.|
-|IT/OT devices|control, field|X|Depends on number of end devices, switches in the layer definition and truth value in the layer device count configuration.|
-
-## Communication
-GeNESIS does not just generate comparable rulesets but also generates related traffic and security configurations, i.e., firewall rulesets for routers.
+To explain the contents and impacts of the different parameters of a layer definition, one must first understand the hierarchical structure of indistrial networks.
+For this, consider the following example topology:
 
 ```
-...
+layer 2                   [Subnet 1]
+                         /          \
+layer 1        [Subnet 2]            [Subnet 5]
+              /          \          /          \
+layer 0  [Subnet 3]  [Subnet 4][Subnet 6]  [Subnet 7]
+```
+
+As depicted, the generated networks are organized in hierarchical, tree-like structures.
+The depth of these trees is given implicitly by the number of layer definitions you provide.
+
+The layer definitions each define such a layer.
+- `per_upper_layer` defines the number of subnets a layer contains for each subnet in the next higher layer, i.e., in the example above, layer 1 and layer 0 both have `"per_upper_layer": 2`.
+- `switch_count` defines the number of switches containes in each subnet of the defined layer.
+- `max_host_per_switch` defines the number of devices connected to each switch in each subnet of the defined layer.
+- `host_types` defines the different kinds of devices found in each subnet of the defined layer.
+GeNESIS supports four different host types: `SERVER`, `CONTROLLER`, `OT_END_DEVICE`, and `IT_END_DEVICE`.
+You can specify the occurance of each of these types in two different ways:
+First, by assigning them a specific number, and second, by setting their value to `-1`.
+If a positive integer is provided, GeNESIS will generate that exact number of devices in each subnet of the defined layer.
+If a negative integer is provided, GeNESIS will create devices of that type, until each switch of the subnet is connected to exactly `max_host_per_switch` switches.
+- `structure_distribution` describes the structure type of the subnets of the defined layer.
+This parameter is specified as a distribution, e.g., if you provide `{"RING": 1, "LINE":1}`, a generated subnet has a 50:50 chance to be either a ring or a line network.
+- `repetitions` enables you to configure multiple layers at once.
+For example, if layer 0 and layer 1 should have the exact same configurations, you can simply define them once and set `"repetitions": 2`.
+
+### Communication
+The communication part of the configuration file specifies iterations, communication profiles, and an upper connection count:
+```
 "communication": {
-   ...
-   "connection_count": 100,
-   ...
-},
-...
+   "iterations": X,
+   "traffic_profile": X,
+   "upper_connection_count": X
+}
 ```
 
-### Communication Profiles
-Allowed communication within the generated network is defined by so-called communication profiles and can be specified in the configuration.json.
-Users have a choice between
-1) strict isolation,
-2) converged networks, and
-3) distributed control.
+As for every generation step, a user can configure GeNESIS to execute the communication generation step multiple times with the help of `"iterations"`.
+> Note however, that the communication step is applied after every topology generation step. Hence, if you configure multiple iterations in both the topology and the communication step, GeNESIS will generate $topology.iterations * communication.iterations$ different evaluation scenarios.
 
-The communication profiles are extensions of each other, i.e., converged networks inherit all properties of strict isolation and distributed control inherits all properties of converged networks.
+For the definition of allowed communication in a network, GeNESIS uses so-called traffic profiles.
+GeNESIS supports three different kinds of these traffic profiles: `"STRIC_ISOLATION"`, `"CONVERGED_NETWORKS"`, and `"DISTRIBUTED_CONTROL"`.
+
+These communication profiles are extensions of each other, i.e., converged networks inherit all properties of strict isolation and distributed control inherits all properties of converged networks.
 
 1. Strict Isolation
    - All controllers may communicate with each other controller in neighboring layer instances along the same branch.
@@ -212,43 +183,25 @@ The communication profiles are extensions of each other, i.e., converged network
    - All controllers and servers may communicate with each other server and controller in the network.
    - All OT/IT devices may communicate with each other OT/IT device along the same branch.
 
-As for each other configuration, the communication profiles are specified in the configuration.json file:
+Additionally, you can specify a `"upper_connection_count"` to limit the number of allowed connections in the network.
+
+### Security
+The security part of the configuration file specifies iterations, ruleset anomalies, and a stateful rule percentage.
+
 ```
-...
- "communication": {
-      "traffic_profile" : "STRIC_ISOLATION" | "CONVERGED_NETWORKS" | "DISTRIBUTED_CONTROL",
-      ...
-    },
-...
+"security": {
+   "iterations": X,
+   "ruleset_anomaly_count": X,
+   "stateful_rule_percentage": X
+}
 ```
-### Services
 
-Each device is instantiated with a random selection of one or more services.
-GeNESIS uses these services to define open ports and protocols of individual devices, which in turn are used to generate the traffic between different devices and the configurations, i.e., firewall rulesets, of routers.
-Hence, in addition to the previously discussed communication profiles, two devices can only communicate with each other, if they both support the same protocols and share open ports.
+As for every generation step, a user can configure GeNESIS to execute the security generation step multiple times with the help of `"iterations"`.
+> Note however, that the security step is applied after every communication generation step. Hence, GeNESIS will generate $topology.iterations * communication.iterations * security.iterations$ different evaluation scenarios.
 
-|Service|Device Role|Protocol|Port|
-|:-:|:-|:-|:-|
-|SSH|Router, Server, Switch, IT device|TCP|22|
-|Webserver|Router, Controller, Switch, IT/OT device|TCP|80,443|
-|IP Camera|Server, IT device|RTSP, TCP|554|
-|NETCONF|Router, Switch|TCP|830|
-|OPC UA|Server, Controller|TCP|4840|
-|ProfiNet|Controller, OT device|UDP|34962,34963,34964,53247|
-|EtherCAT|Controller, OT device|UDP|0|
-
-
-### Firewall Anomalies
-To allow the traffic of valid communication pairs with paths over one or more routers that utilize whitelisting behavior, ACCEPT rules are created.
+The other two parameters concern the layout of generated rulesets of routers in the network.
+- `ruleset_anomaly_count` specifies the number of anomalies in rulesets, i.e., the number of intersecting rules of different actions.
+By default, GeNESIS only generates whitelisting rulesets with ACCEPT rules for each allowed connection.
 To create optimizable rulesets for optimization algorithms, GeNESIS allows you to configure an anomaly count.
-If possible, GeNESIS will create as many anomalies in every generated ruleset as you defined.
-
-```
-...
-"communication": {
-   ...
-   "anomaly_count": 10,
-   ...
-},
-...
-```
+If possible, GeNESIS will create that many anomalies in every ruleset.
+- `stateful_rule_percentage` defines the percentage of rules defined with connection state references, e.g., `NEW` or `ESTABLISHED`.
