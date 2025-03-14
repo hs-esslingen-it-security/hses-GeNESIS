@@ -12,3 +12,14 @@ def to_save_file(location, node, ruleset, default_action = EPacketDecision.DROP)
             file.write(f'-A INPUT {rule}\n')
         file.write('COMMIT\n')
         file.write(f'# Completed on {datetime.now().strftime("%a %b %d %H:%M:%S %Y")}')
+
+def to_zimpl_parsable(location, rulesets):
+    with open(join(location, 'ruleset.txt'), 'w') as file:
+        header_fields = [f'{prefix}_{suffix}' for prefix, suffix in product(['src', 'dst', 'prot', 'src_port', 'dst_port', 'state'], ['start', 'end'])] + ['action']
+        for i, header in enumerate(header_fields):
+            file.write(f'# <router,x,{i}>{header}\n')
+
+        for router, ruleset in rulesets:
+            for i, rule in enumerate(ruleset):
+                for j, v in enumerate(rule):
+                    file.write(f'{router},{i},{j},{v}\n')

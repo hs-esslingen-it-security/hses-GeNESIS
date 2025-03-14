@@ -1,5 +1,5 @@
 from enum import Enum
-from random import Random
+from types import SimpleNamespace
 
 class EGenerationSteps(Enum):
     TOPOLOGY = 0
@@ -59,6 +59,55 @@ class ESubnetTopologyStructure(Enum):
     def redundant_types():
         return [ESubnetTopologyStructure.RING, ESubnetTopologyStructure.MESH]
         
+
+class EState(Enum):
+    NONE = 0
+    NEW = 1
+    ESTABLISHED = 2
+    RELATED = 3
+    INVALID = 4
+    UNTRACKED = 5
+
+    @staticmethod
+    def from_value(input : int):
+        for v in EState:
+            if v.value == input:
+                return v
+            
+        raise Exception(f'NO VALID STATE ({input}). Use one of {list(EState.__members__.values())}')
+    
+
+class EService(Enum):
+    SSH = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [22], 'packet_size_range' : [512,1500], 'priority' : 1, 'dei' : 0})
+    HTTP = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [80], 'packet_size_range' : [64,1500], 'priority' : 1, 'dei' : 0})
+    HTTPS = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [443], 'packet_size_range' : [64,1500], 'priority' : 1, 'dei' : 0})
+    OPC_UA = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [4840], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
+    NETCONF = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [830], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
+    IP_Camera = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [554], 'packet_size_range' : [1000,1500], 'priority' : 1, 'dei' : 0}) # rtsp uses mostly tcp --> no signature protocol number in ip header
+    ModbusTCP = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [502], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
+    EthernetIP = SimpleNamespace(**{'protocols' : ['tcp', 'udp'], 'ports' : [44818, 2222], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
+    EtherCAT = SimpleNamespace(**{'protocols' : ['udp'], 'ports' : [34980], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
+    ProfiNet = SimpleNamespace(**{'protocols' : ['udp'], 'ports' : [34962,34963,34964,53247], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
+
+    def __str__(self) -> str:
+        return self.name
+    
+    @staticmethod
+    def from_str(value):
+        for v in EService:
+            if v.name == value:
+                return v
+            
+        raise Exception(f'Unknown Service passed: {value}.')
+
+    def to_dict(self):
+        protocols, ports, _, _ = self.value
+        return {
+            "service": self.name, 
+            "protocols": protocols, 
+            "ports": ports
+        }
+
 class EDeviceRole(Enum):
     SERVER = 'SV'
     ROUTER = 'R'
@@ -77,8 +126,6 @@ class EDeviceRole(Enum):
         
     @staticmethod
     def from_device_id(input : str):
-        if EDeviceRole.PORT.value in input:
-            return EDeviceRole.PORT
         matches = [e for e in EDeviceRole if input.startswith(str(e.value))]
         if len(matches) != 1:
             raise Exception(f'Invalid Device ID: {input}')
@@ -97,6 +144,62 @@ class EDeviceRole(Enum):
     
     def __str__(self) -> str:
         return self.name
+    
+    def possible_services(self) -> list[EService]:
+        services = [EService.HTTP, EService.HTTPS]
+        if self != EDeviceRole.OT_END_DEVICE:
+            services.append(EService.SSH)
+
+        if self != EDeviceRole.IT_END_DEVICE:
+            services.append(EService.OPC_UA)
+
+        if self not in [EDeviceRole.IT_END_DEVICE, EDeviceRole.OT_END_DEVICE]:
+            services.append(EService.NETCONF)
+
+        if self in [EDeviceRole.SERVER, EDeviceRole.IT_END_DEVICE]:
+            services.append(EService.IP_Camera)
+
+        if self in [EDeviceRole.SERVER, EDeviceRole.CONTROLLER, EDeviceRole.OT_END_DEVICE]:
+            services.append(EService.ModbusTCP)
+            services.append(EService.EthernetIP)
+            services.append(EService.EtherCAT)
+            services.append(EService.ProfiNet)
+
+        return services
+
+    def possible_service_states(self, service : EService):
+        if self == EDeviceRole.SERVER:
+            return [EState.NEW, EState.ESTABLISHED, EState.RELATED]
+        
+        if self in [EDeviceRole.ROUTER, EDeviceRole.SWITCH]:
+            if service in [EService.HTTP, EService.HTTPS, EService.OPC_UA, EService.NETCONF]:
+                return [EState.ESTABLISHED, EState.RELATED]
+            return []
+            
+        if self == EDeviceRole.CONTROLLER:
+            if service in [EService.HTTP, EService.HTTPS]:
+                return [EState.ESTABLISHED, EState.RELATED]
+            elif service != EService.IP_Camera:
+                return [EState.NEW, EState.ESTABLISHED, EState.RELATED]
+            
+            return []
+            
+        if self == EDeviceRole.IT_END_DEVICE:
+            if service in [EService.HTTP, EService.HTTPS, EService.SSH, EService.IP_Camera]:
+                return [EState.NEW, EState.ESTABLISHED, EState.RELATED]
+            return []
+
+        if self == EDeviceRole.OT_END_DEVICE:
+            if service in [EService.ModbusTCP, EService.EthernetIP, EService.EtherCAT, EService.ProfiNet]:
+                return [EState.NEW, EState.ESTABLISHED, EState.RELATED]
+            elif service in [EService.HTTP, EService.HTTPS, EService.OPC_UA]:
+                return [EState.ESTABLISHED, EState.RELATED]
+
+        return []
+    
+    @staticmethod
+    def high_senders():
+        return [EDeviceRole.IT_END_DEVICE, EDeviceRole.OT_END_DEVICE]
     
 class ETrafficProfile(Enum):
     STRICT_ISOLATION = 0
@@ -118,96 +221,6 @@ class ETrafficProfile(Enum):
             if v.value == input:
                 return v
         raise Exception(f'NO VALID TRAFFIC PROFILE ({input}). Use one of {list(ETrafficProfile.__members__.values())}.')
-    
-class EState(Enum):
-    NONE = 0
-    NEW = 1
-    ESTABLISHED = 2
-    RELATED = 3
-    INVALID = 4
-    UNTRACKED = 5
-
-    @staticmethod
-    def from_value(input : int):
-        for v in EState:
-            if v.value == input:
-                return v
-            
-        raise Exception(f'NO VALID STATE ({input}). Use one of {list(EState.__members__.values())}')
-    
-class EService(Enum):
-    SSH = (['TCP'], [22], (512,1500), (10,100))
-    Webserver = (['TCP'], [80,443], (64,1500), (10,100))
-    IP_Camera = (['TCP'], [554], (1000,1500), (10,100)) # rtsp uses mostly tcp --> no signature protocol number in ip header
-    NETCONF = (['TCP'], [830], (64,800), (10,100))
-    OPC_UA = (['TCP'], [4840], (64,800), (10,100))
-    Profinet = (['UDP'], [34962,34963,34964,53247], (64,100), (10,100))
-    EtherCAT = (['UDP'], [34980], (64,100), (10,100))
-
-    def __str__(self) -> str:
-        return self.name
-    
-    def to_dict(self):
-        protocols, ports, _, _ = self.value
-        return {
-            "service": self.name, 
-            "protocols": protocols, 
-            "ports": ports
-        }
-    
-    @staticmethod
-    def from_str(value):
-        for v in EService:
-            if v.name == value:
-                return v
-            
-        raise Exception(f'Unknown Service passed: {value}.')
-
-    @staticmethod
-    def from_role(role : EDeviceRole, random : Random):
-        if role == EDeviceRole.PORT:
-            return []
-        
-        if role == EDeviceRole.CONTROLLER:
-            choices = [
-                (EService.SSH, [EState.NEW, EState.RELATED, EState.ESTABLISHED]),
-                (EService.Webserver, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.Profinet, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.EtherCAT, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.OPC_UA, [EState.NEW, EState.ESTABLISHED, EState.RELATED])
-            ]
-        elif role == EDeviceRole.IT_END_DEVICE:
-            choices = [
-                (EService.SSH, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.Webserver, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.IP_Camera, [EState.NEW, EState.ESTABLISHED, EState.RELATED])
-            ]
-        elif role == EDeviceRole.OT_END_DEVICE:
-            choices = [
-                (EService.Profinet, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.EtherCAT, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.Webserver, [EState.ESTABLISHED, EState.RELATED])
-            ]
-        elif role == EDeviceRole.SERVER:
-            choices = [
-                (EService.SSH, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.NETCONF, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.OPC_UA, [EState.NEW, EState.ESTABLISHED, EState.RELATED]),
-                (EService.IP_Camera, [EState.ESTABLISHED, EState.RELATED])
-            ]
-        elif role == EDeviceRole.SWITCH:
-            choices = [
-                (EService.SSH, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.NETCONF, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.Webserver, [EState.ESTABLISHED, EState.RELATED])
-            ]
-        else:
-            choices = [
-                (EService.SSH, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.NETCONF, [EState.ESTABLISHED, EState.RELATED]),
-                (EService.Webserver, [EState.ESTABLISHED, EState.RELATED])
-            ]
-        return random.sample(choices, k=random.randint(1,len(choices)))
     
 class EParameterKey(Enum):
     SRC = 's'

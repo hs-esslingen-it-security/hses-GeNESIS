@@ -1,8 +1,6 @@
-from itertools import product
 from random import Random
 from networkx import Graph, has_path, shortest_simple_paths
-from hses_genesis.parsing.configuration import IterativeParameterValue
-from hses_genesis.utils.enum_objects import EDeviceRole, EState, ETrafficProfile, ENetworkLayer
+from hses_genesis.utils.enum_objects import EDeviceRole, EService, EState, ETrafficProfile, ENetworkLayer
 from hses_genesis.utils.functions import print_information
 
 def print_connection_info(total_connections, forbidden_connections, intrasubnet_connections, intersubnet_connections, sampled_connections, traffic_profile = ETrafficProfile.STRICT_ISOLATION):
@@ -75,7 +73,7 @@ class CommunicationGenerator():
             if src_data['role'] not in EDeviceRole.configurables():
                 continue
             
-            initiating_services = [(service_name, service_states) for (service_name, service_states) in src_data['services'] if EState.NEW in service_states] 
+            initiating_services = [service for service in src_data['services'] if EState.NEW in src_data['role'].possible_service_states(service)] 
             if not initiating_services:
                 continue
 
@@ -83,7 +81,7 @@ class CommunicationGenerator():
                 if (src_node == dst_node) or (dst_data['role'] not in EDeviceRole.configurables()):
                     continue
 
-                overlapping_services = [src_service for (src_service, _) in src_data['services'] if src_service in [dst_service for (dst_service, dst_service_states) in dst_data['services'] if (EState.ESTABLISHED in dst_service_states or EState.RELATED in dst_service_states)]]
+                overlapping_services = [src_service for src_service in src_data['services'] if src_service in dst_data['services']]
                 if not overlapping_services or not has_path(G, src_node, dst_node):
                     continue
 
@@ -130,3 +128,32 @@ class CommunicationGenerator():
             if any(router in path for path in shortest_simple_paths(G, source, target)):
                 output.append((G.nodes[source]['ip'], G.nodes[target]['ip'], p, sport, dport))
         return output
+    
+    def generate_packet(self, service : EService, src_node : str, src_data : dict, dst_node : str, dst_data : dict, protocol : str, port : int, is_high_sender = False):
+        return {
+            'SourceName' : src_node,
+            'DestinationName' : dst_node,
+            
+            # Ethernet
+            'SourceMac' : src_data['mac'],
+            'DestinationMac' : dst_data['mac'],
+            'EtherType' : 'IPv4',
+
+            # 802.1Q
+            'PriorityCodePoint' : service.value.priority,
+            'DropEligibleIndicator' : service.value.dei, 
+            'VlanIndicator' : 1,
+            
+            # IP
+            'Protocol' : protocol,
+            'SourceIp' : src_data['ip'],
+            'DestinationIp' : dst_data['ip'],
+
+            # TCP/UDP
+            'SourcePort' : port,
+            'DestinationPort' : port,
+
+            # General
+            'PacketSize' : self.random.randint(service.value.packet_size_range[0], service.value.packet_size_range[1]),
+            'PacketsPerSecond' : self.random.randint(10, 100) * (2 if is_high_sender else 1)
+        }

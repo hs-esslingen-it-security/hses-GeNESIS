@@ -1,35 +1,25 @@
 from hses_genesis.utils.enum_objects import EParameterKey, EParameterType
+
 TOPOLOGY_KEY = 'topology'
-
 COMMUNICATION_KEY = 'communication'
-
 SECURITY_KEY = 'security'
 
 ITERATIONS_KEY = 'iterations'
 
-PER_UPPER_LAYER_KEY = 'per_upper_layer'
-
-LAYER_DESCRIPTIONS_KEY = 'layer_descriptions'
+LAYER_DEFINITIONS_KEY = 'layer_definitions'
 
 SWITCH_COUNT_KEY = 'switch_count'
-
 MAX_HOSTS_PER_SWITCH_KEY = 'max_hosts_per_switch'
-
+STRUCTURE_KEY = "structure"
 HOST_TYPES_KEY = "host_types"
-
-STRUCTURE_DISTRIBUTION_KEY = "structure_distribution"
+REPETITIONS_KEY = 'repetitions'
+SUBNET_DESCENDANTS_KEY = 'subnet_descendants'
 
 TRAFFIC_PROFILE_KEY = "traffic_profile"
-
 UPPER_CONNECTION_BOUND_KEY = "upper_connection_bound"
 
-RULESET_ANOMALY_COUNT_KEY = "ruleset_anomaly_count"
-
-STATEFUL_RULE_PERCENTAGE_KEY = "stateful_rule_percentage"
-
-LAYER_TYPE_KEY = "layer_type"
-
-REPETITIONS_KEY = 'repetitions'
+ANOMALY_COUNT_KEY = "anomaly_count"
+STATEFUL_PERCENTAGE_KEY = "stateful_percentage"
 
 SMALL_SEPARATOR = '·'
 
@@ -63,9 +53,15 @@ GRAPH_FOLDER = 'graphs'
 
 RULESET_FOLDER = 'rulesets'
 
+OMNET_FOLDER = 'omnetpp'
+
+NS3_FOLDER = 'ns3'
+
+ZIMPL_FOLDER = 'zimpl'
+
 PACKET_FOLDER = 'packets'
 
-TERMINAL_WIDTH = 40
+TERMINAL_WIDTH = 44
 
 PROTOCOLS = {
     'ip' : 0,
@@ -91,4 +87,4 @@ DEFAULT_TUPLE = [
     EParameterKey.DST_PORT
 ]
 
-PACKET_HEADERS = [key.value for key in EParameterKey] + [f'{EParameterKey.SRC.name.lower()}_ip', f'{EParameterKey.DST.name.lower()}_ip', f'{EParameterKey.PROTOCOL.name.lower()}_code', 'packet_size', 'packets_per_second']
+PACKET_HEADERS = ['SourceName', 'DestinationName', 'SourceMac', 'DestinationMac', 'EtherType', 'PriorityCodePoint', 'DropEligibleIndicator', 'VlanIndicator', 'Protocol', 'SourceIp', 'DestinationIp', 'SourcePort', 'DestinationPort', 'PacketSize', 'PacketsPerSecond']

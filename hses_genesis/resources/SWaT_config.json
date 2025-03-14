@@ -1,33 +1,32 @@
 {
     "topology": {
         "iterations" : 1,
-        "layer_descriptions" : [
+        "layer_definitions" : [
             {
                 "switch_count": 3,
                 "max_hosts_per_switch": 2,
+                "structure": {
+                    "LINE": 1
+                },
                 "host_types" : {
                     "SERVER" : 2,
                     "IT_END_DEVICE" : -1
-                },
-                "structure_distribution": {
-                    "LINE": 1
                 }
             },
             {
-                "per_upper_layer" : 1,
-                "structure_distribution": {
+                "switch_count": 13,
+                "max_hosts_per_switch": 1,
+                "structure": {
                     "STAR": 1
                 },
-                "switch_count": 13,
-                "max_hosts_per_switch": 2,
                 "host_types" : {
                     "CONTROLLER" : 2,
                     "IT_END_DEVICE": -1,
                     "OT_END_DEVICE": -1
-                }
+                },
+                "subnet_descendants" : 6
             },
             {
-                "per_upper_layer" : 6,
                 "switch_count": 2,
                 "max_hosts_per_switch": 2,
                 "host_types" : {
@@ -35,22 +34,10 @@
                     "OT_END_DEVICE": -1,
                     "IT_END_DEVICE": -1
                 },
-                "structure_distribution": {
+                "structure": {
                     "RING": 1
-                }
-            },
-            {
-                "per_upper_layer" : 1,
-                "switch_count": 2,
-                "max_hosts_per_switch": 6,
-                "host_types" : {
-                    "CONTROLLER" : 2,
-                    "OT_END_DEVICE": -1,
-                    "IT_END_DEVICE": -1
                 },
-                "structure_distribution": {
-                    "RING": 1
-                }
+                "repetitions" : 2
             }
         ]
     },
@@ -59,7 +46,7 @@
         "upper_connection_bound": -1
     },
     "security" : {
-        "ruleset_anomaly_count": 0,
-        "stateful_rule_percentage" : 0
+        "anomaly_count": 0,
+        "stateful_percentage" : 0
     }
 }

@@ -1,6 +1,6 @@
 from math import ceil, log2
 from random import Random
-from networkx import Graph, compose, connected_components, cycle_graph, path_graph, neighbors, star_graph
+from networkx import Graph, compose, connected_components, cycle_graph, path_graph, neighbors, star_graph, descendants_at_distance
 from hses_genesis.utils.enum_objects import EDeviceRole, ENetworkLayer, EPacketDecision, EService, ESubnetTopologyStructure
 from hses_genesis.parsing.configuration import LayerDefinition
 from ipaddress import ip_network, IPv4Network
@@ -21,14 +21,16 @@ def get_graph_information(G : Graph):
 def calculate_subnets(layer_definitions : list[LayerDefinition]):
     required_number_of_ips = []
     for i, layer_definition in enumerate(layer_definitions):
-        max_router_count = 2
         switch_count = layer_definition.switch_count.CURRENT
-        ip_count = max_router_count + switch_count + (switch_count * layer_definition.max_hosts_per_switch.CURRENT)
-        if i < len(layer_definitions) - 1: # due to children
-            ip_count += 2* (2 * layer_definitions[i + 1].per_upper_layer.CURRENT) # additional switches in subnet + required ips for routers in children
+        if switch_count < 0 and i < len(layer_definitions) - 1:
+            switch_count = (2 * layer_definition.subnet_descendants.CURRENT) + (1 if layer_definition.structure_distribution.get(ESubnetTopologyStructure.STAR, 0) > 0 else 0)
+        ip_count = switch_count + (switch_count * layer_definition.max_hosts_per_switch.CURRENT) + 4 # +4 due to worst case number of routers in a subnet + number of additional ips between routers
+        
+        if i < len(layer_definitions) - 1:
+            child_count = layer_definition.subnet_descendants.CURRENT if i < len(layer_definitions) - 1 else 0
+            ip_count += 2 * child_count
         required_number_of_ips.append(ip_count)
-
-    worst_case_subnet_size = max(required_number_of_ips) + 2 # +2 due do diff between total number of hosts and usable number of hosts
+    worst_case_subnet_size = max(required_number_of_ips) + 2 # +2 due to diff between total number of hosts and usable number of hosts
     netmask_size = max(16, min(32 - ceil(log2(worst_case_subnet_size)), 32))
     base_network = ip_network(f'192.0.0.0/16')
     return list(base_network.subnets(new_prefix=netmask_size))
@@ -37,6 +39,7 @@ class TopologyGenerator():
     def __init__(self, seed : int) -> None:
         self.existing_devices = []
         self.existing_subnets = []
+        self.existing_macs = []
         self.random = Random(seed)
 
     def generate_device(self, device_role : EDeviceRole, initial_index = 0):
@@ -48,17 +51,24 @@ class TopologyGenerator():
 
     def assign_node_informations(self, G : Graph, layer : ENetworkLayer, branch_id : str, subnet_ip : IPv4Network):
         if len([n for n in G.nodes if EDeviceRole.from_device_id(n) not in [EDeviceRole.PORT]]) > 253:
-            raise Exception('Too many devices in a single subnet! Only 253 devices are supported.')
+            raise Exception(f'Too many devices in a single subnet! Only {len(subnet_ip.hosts)} devices are supported.')
 
         self.existing_subnets.append(subnet_ip)
         ips = list(subnet_ip.hosts())
         
         for device in G.nodes:
+            mac_index = len(self.existing_macs)
+            mac_address = "02:00:00:%02x:%02x:%02x" % ((mac_index >> 16) & 0xFF, (mac_index >> 8) & 0xFF, mac_index & 0xFF)
+            G.nodes[device]['mac'] = mac_address
+            self.existing_macs.append(mac_address)
+            
             device_role = EDeviceRole.from_device_id(device)
             G.nodes[device]['layer'] = layer.name
             G.nodes[device]['branch'] = branch_id
             G.nodes[device]['role'] = device_role
-            G.nodes[device]['services'] =  EService.from_role(device_role, self.random)
+            possible_services = device_role.possible_services()
+            services = self.random.sample(possible_services, k=self.random.randint(1,len(possible_services)))
+            G.nodes[device]['services'] = services
             ip = str(ips.pop(0))
             if device_role == EDeviceRole.ROUTER:
                 G.nodes[device]['subnet'] = [str(subnet_ip)]
@@ -99,15 +109,18 @@ class TopologyGenerator():
             G = Graph([(s, e) for s in forwarding_devices for e in forwarding_devices if s != e])
         return G
 
-    def add_devices(self, G : Graph, max_hosts_per_owner : int, host_types : dict[EDeviceRole, int]):
+    def add_devices(self, G : Graph, max_hosts_per_owner : int, host_types : dict[EDeviceRole, int], subnet_structure : ESubnetTopologyStructure):
         def is_center_node(G, node):
             return sum([1 for n in neighbors(G, node) if EDeviceRole.from_device_id(n) == EDeviceRole.SWITCH]) > 2
         
-        device_owners = [node for node in G.nodes() if EDeviceRole.from_device_id(node) == EDeviceRole.SWITCH and not is_center_node(G, node)]
+        if sum([max(0, v) for v in host_types.values()]) == 0 and sum([min(0, v) for v in host_types.values()]) == 0:
+            return G
+
+        device_owners = [node for node in G.nodes() if EDeviceRole.from_device_id(node) == EDeviceRole.SWITCH and not (subnet_structure == ESubnetTopologyStructure.STAR and is_center_node(G, node))]
         if len(device_owners) == 0:
             raise Exception('InvalidConfigurationException: Layer instance without switches generated. Most likely your configuration file does not specify a switch_count in the last layer_definition.')
         
-        if len(device_owners) * max_hosts_per_owner < sum([value for value in host_types.values() if value > 0]):
+        if len(device_owners) * max_hosts_per_owner < sum([max(value, 0) for value in host_types.values()]):
             raise Exception('InvalidConfigurationException: Your configuration of fixed devices exceeds the available space.')
         
 
@@ -125,20 +138,21 @@ class TopologyGenerator():
                 G.add_node(device)
                 G.add_edge(chosen_owner, device)
 
-        remaining_device_choices = [host_type for host_type, count in host_types.items() if count < 0]
+        filling_hosts = {host_type : abs(count) for host_type, count in host_types.items() if count < 0}
         
-        if len(remaining_device_choices) == 0:
+        if not filling_hosts:
             return G
 
         for switch in device_owners:
-            existing_devices = sum([1 for n in neighbors(G, switch) if EDeviceRole.from_device_id(n) in EDeviceRole.configurables()])
-            remaining_space = max_hosts_per_owner - existing_devices
+            connected_devices = sum([1 for n in neighbors(G, switch) if EDeviceRole.from_device_id(n) in EDeviceRole.configurables()])
+            remaining_space = max_hosts_per_owner - connected_devices
 
             if remaining_space <= 0:
                 continue
 
             for _ in range(remaining_space):
-                device = self.generate_device(self.random.choice(remaining_device_choices))
+                device_type = self.random.choices(list(filling_hosts.keys()), weights=list(filling_hosts.values()), k=1)[0]
+                device = self.generate_device(device_type)
                 G.add_node(device)
                 G.add_edge(switch, device)
         return G
@@ -150,10 +164,10 @@ class TopologyGenerator():
                         host_types : list[EDeviceRole],
                         has_parent = False) -> Graph:
         
-        G = self.get_barebone_subnet(switch_count, subnet_structure, has_parent)
+        G = self.get_barebone_subnet(switch_count, subnet_structure, has_parent) 
 
         G = self.add_devices(G, max_hosts_per_owner=hosts_per_owner,
-                             host_types=host_types)
+                             host_types=host_types, subnet_structure=subnet_structure)
 
         return G
 
@@ -166,13 +180,8 @@ class TopologyGenerator():
         layer_definition = layer_definitions[layer_index]
 
         switch_count = layer_definition.switch_count.CURRENT
-
-        if layer_index < len(layer_definitions) - 1:
-            next_layer = layer_definitions[layer_index + 1]
-            number_of_children = next_layer.per_upper_layer.CURRENT
-            if number_of_children > 0:
-                child_redundancy = any(value > 0 for key, value in next_layer.structure_distribution.items() if key in ESubnetTopologyStructure.redundant_types())
-                switch_count += ((2 if child_redundancy else 1) * number_of_children)
+        if switch_count < 0 and layer_index < len(layer_definitions) - 1:
+            switch_count = (1 if layer_definition.structure_distribution.get(ESubnetTopologyStructure.STAR, 0) > 0 else 0) + (layer_definition.subnet_descendants.CURRENT * 2)
 
         network = self.generate_subnet(
             subnet_structure=self.get_topology_type(layer_definition.structure_distribution),
@@ -191,7 +200,7 @@ class TopologyGenerator():
         switches = [node for node, data in network.nodes(data=True) if data['role'] == EDeviceRole.SWITCH]
         self.random.shuffle(switches)
 
-        children = [self.generate_network(layer_definitions, available_subnet_ips, layer_index=layer_index+1, branch_id=f'{branch_id}.{i}') for i in range(layer_definitions[layer_index + 1].per_upper_layer.CURRENT)]
+        children = [self.generate_network(layer_definitions, available_subnet_ips, layer_index=layer_index+1, branch_id=f'{branch_id}.{i}') for i in range(layer_definition.subnet_descendants.CURRENT)]
 
         for child_index, child_network in enumerate(children):
             network : Graph = compose(network, child_network)

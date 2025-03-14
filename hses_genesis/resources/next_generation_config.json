@@ -1,9 +1,8 @@
 {
     "topology": {
-        "iterations" : 1,
         "layer_definitions" : [
             {
-                "switch_count": 4,
+                "switch_count": -1,
                 "max_hosts_per_switch": 2,
                 "host_types" : {
                     "SERVER" : 2,
@@ -11,9 +10,9 @@
                     "IT_END_DEVICE" : -1
                 },
                 "structure": {
-                    "LINE": 1
+                    "MESH": 1
                 },
-                "subnet_descendants" : 2
+                "subnet_descendants" : [2,4,1]
             },
             {
                 "switch_count": 2,
@@ -21,20 +20,15 @@
                 "host_types" : {
                     "CONTROLLER" : 2,
                     "IT_END_DEVICE" : -1,
-                    "OT_END_DEVICE" : -1
+                    "OT_END_DEVICE" : -2
                 },
                 "structure": {
-                    "LINE": 1
+                    "RING": 1
                 }
             }
         ]
     },
     "communication": {
-        "traffic_profile": "DISTRIBUTED_CONTROL",
-        "upper_connection_bound": -1
-    },
-    "security" : {
-        "anomaly_count": 0,
-        "stateful_percentage" : 0
+        "traffic_profile": "DISTRIBUTED_CONTROL"
     }
 }

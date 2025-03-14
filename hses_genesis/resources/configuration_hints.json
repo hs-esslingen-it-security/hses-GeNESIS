@@ -1,0 +1,74 @@
+{
+    "ATTENTION" : "THIS IS A FILE PARSED BY GENESIS. ITS CONTENTS ARE NESCESSARY FOR THE INTERACTIVE GENESIS CONFIGURATION GENERATOR. DO NOT CHANGE ITS CONTENTS.",
+    "topology": {
+        "info" : "contains all configurations for the topology generation."
+    },
+    "communication" : {
+        "info" : "contains all configurations for the communication generation."
+    },
+    "security" : {
+        "info" : "contains all configurations for the security generation."
+    },
+    "iterations" : {
+        "contained_in" : ["topology", "communication", "security"],
+        "info" : "specifies the number of generation repetitions for the corresponding generation step, i.e., topology, communication, and security.",
+        "default_value" : 1
+    },
+    "layer_definitions" : {
+        "contained_in" : ["topology"],
+        "info" : "specifies the layout and contents of layers and subnets inside the network; At least one layer definition is required for topology generation."
+    },
+    "switch_count": {
+        "contained_in" : ["layer_definition"],
+        "info" : "specifies the number of switches in subnets of layers defined by this layer definition. Negative numbers indicate a dynamic number of subnets, i.e., the number of switches depends on the subnet_descendants of this layer definition.",
+        "default_value" : 1
+    },
+    "max_hosts_per_switch": {
+        "contained_in" : ["layer_definition"],
+        "info" : "Secifies the number of hosts connected to each switch in subnets of layers defined by this layer definition.",
+        "default_value" : 1
+    },
+    "structure": {
+        "contained_in" : ["layer_definition"],
+        "info" : "specifies the structure distribution for subnets within layers defined by this layer definition. For example, subnets in layers with 'structure' : {'line' : 1, 'ring' : 1} have a 50:50 chance to either have a ring or line structure.",
+        "valid_options" : ["RING", "STAR", "LINE", "MESH"],
+        "default_value" : {"LINE" : 1}
+    },
+    "host_types" : {
+        "contained_in" : ["layer_definition"],
+        "info" : "specifies the host type distribution in subnets within layers defined by this layer definition. Positive numbers indicate a fixed number of hosts. For example, each subnet in layers with 'host_types' : {'server' : 2} will contain exactly to servers. Negative numbers indicate an indefinite number of hosts to generate. For example, each subnet in layers with 'host_types' : {'ot' : -1} is filled with OT devices, until each switch is connected to max_hosts_per_switch hosts.",
+        "valid_options" : ["SERVER", "CONTROLLER", "OT_END_DEVICE", "IT_END_DEVICE"],
+        "default_value" : {}
+    },
+    "repetitions" : {
+        "contained_in" : ["layer_definition"],
+        "info" : "specifies the number of layers generated based on this layer definition.",
+        "default_value" : 1
+    },
+    "subnet_descendants" : {
+        "contained_in" : ["layer_definition"],
+        "info" : "specifies the number of subnets in the next lower layer connected to each subnet of layers defined by this layer definition.",
+        "default_value" : 1
+    },
+    "traffic_profile": {
+        "contained_in" : ["communication"],
+        "info" : "specifies the traffic profile to use. The different traffic profiles are explained in our paper: https://ieeexplore.ieee.org/abstract/document/10710752.",
+        "valid_options" : ["STRICT_ISOLATION", "CONVERGED_NETWORKS", "DISTRIBUTED_CONTROL"],
+        "default_value" : "STRICT_ISOLATION"
+    },
+    "upper_connection_bound": {
+        "contained_in" : ["communication"],
+        "info" : "specifies the maximal number of allowed communication pairs. Negative numbers indicate an indefinite number of communication pairs.",
+        "default_value" : -1
+    },
+    "anomaly_count": {
+        "contained_in" : "security",
+        "info" : "specifies the minimal number of anomalies in all generated rulesets. GeNESIS creates anomalies by generating additional rules, which intersect with other rules but do not alter the semantics of the ruleset. Ruleset anomalies are further explained in this paper: https://ieeexplore.ieee.org/abstract/document/4623689.",
+        "default_value" : 0
+    },
+    "stateful_percentage" : {
+        "contained_in" : "security",
+        "info" : "specifies the percentage of stateful rules in all generated rulesets.",
+        "default_value" : 0
+    }
+}

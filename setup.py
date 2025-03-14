@@ -3,8 +3,8 @@ setup(
     name='HSES-GeNESIS',
     packages=find_packages(),
     include_package_data=True,
-    version='1.1',
+    version='1.2',
     description='GeNESIS - Generator for Network Evaluation Scenarios of Industrial Systems',
-    author='Samuel Mueller',
+    author='Samuel Mueller, Lukas Bechtel, Lukas Popperl',
     license='MIT',
 )
