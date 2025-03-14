@@ -31,7 +31,6 @@ If you use GeNESIS in one of your papers, please cite:
 ## Installation
 Before you start, you should install the requirements and the GeNESIS module itself:
 ```
-cd hses_genesis
 pip install -r requirements.txt
 pip install .
 ```
