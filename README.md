@@ -31,7 +31,7 @@ If you use GeNESIS in one of your papers, please cite:
 ## Installation
 Before you start, you should install the requirements and the GeNESIS module itself:
 ```
-cd hses-genesis
+cd hses_genesis
 pip install -r requirements.txt
 pip install .
 ```
@@ -43,8 +43,14 @@ python3 hses_genesis/main.py
 This will start a generation cycle with the [`example_config.json`](./hses_genesis/resources/example_config.json) file and save the outputs in `<hses_genesis/output/example_config/>`.
 During the generation, GeNESIS keeps you up to date about current processes and its general progress.
 
+## Tutorial
+We published a tutorial paper at the [Computation and Communication for Smart Systems Symposium (C2S3) 2025](https://www.hs-esslingen.de/informatik-und-informationstechnik/fakultaet/aktuelles/veranstaltungen/c2s3).
+The paper showcases the most relevant features of GeNESIS**v1.2** and provides instructions on how to utilize GeNESIS for simulations in ns-3 and OMNeT++.
+If you are interested in the simulation of network topologies generated with GeNESIS we refer to our paper available [here]().
+
 ## Execution
-GeNESIS can be launched with several different arguments:
+With no additional arguments provided, GeNESIS will start a generation cycle using the example config located [here](./hses_genesis/resources/example_config.json).
+However, GeNESIS can be launched with several optional, different arguments:
 ```
 optional arguments:
   -h, --help            show this help message and exit
@@ -55,24 +61,34 @@ optional arguments:
                         start the Interactive GeNESIS Configuration Generator to create a new configuration.
   -o OUTPUT_LOCATION, --output_location OUTPUT_LOCATION
                         set the output location for generated files.
-  -yang, --export_yang_files
-                        use this to export all outputs in a single yang.json file in an ietf conform format.
-  -ipt, --export_iptables_files
-                        use this to export all rulesets in iptable-save format.
   -img, --export_graph_images
                         use this to export an image of the network topology on creation.
+  -omnet, --export_omnet_files
+                        use this to export the topology and packets configuration files for omnet++.
+  -ns3, --export_ns3_files
+                        use this to export the topology and packets configuration files for ns3.
+  -yang, --export_yang_files
+                        use this to export the all outputs in a single json file.
+  -ipt, --export_iptables_files
+                        use this to export the scurity configuration as iptables save files.
+  -latag, --use_latex_tag
+                        use this to get the genesis tag in latex parsable form.
 ```
-Normally, if no arguments are provided, GeNESIS will start a generation cycle using the example config located [here](./hses_genesis/resources/example_config.json).
-The arguments `-j, -g`, and `-n` define different possibilities to provide GeNESIS with other configurations.
-With the help of the `-j` flag, you can specify the location of a valid .json configuration file.
-If you don't want to bother yourself with the syntax of the configuration files yet, we recommend using the `-n` tag.
+
+### Arguments for Configuration Provision
+The arguments `-j`, `-g`, and `-n` define different possibilities to provide GeNESIS with other configurations.
+- With the help of the `-j` flag, you can provide a valid .json configuration file by passing it's absolute path.
+  If you place your configuration file into the `hses_genesis/resources` folder, you can also pass the configuraiton file by it's name insted of it's absolute path.
+- If you don't want to bother yourself with the syntax of the configuration files yet, we recommend using the `-n` tag.
 This will start the Interactive GeNESIS Configuration Generator before the actual execution of GeNESIS, i.e., you will be guided through the creation process of a new configuration file.
-Alternatively, if another run has already been executed, you may provide the GeNESIS-TAG of that run with the `-g` flag.
+- Alternatively, if another run has already been executed, you may provide the GeNESIS-TAG of that run with the `-g` flag.
 This will result in GeNESIS recreating the exact same outputs as in the referenced run.
 Hence, the genesis tag is useful to exchange information about data without actually providing the data.
 
 > Notice, that the genesis tag must have the same version number (`GeNESIS:<version_number> ...`) as your GeNESIS distribution to guarantee correct reproduction of the previous run.
+> If your GeNESIS version differs from the version of your tag, you can checkout the correct GeNESIS version with `git checkout tags/<version_number>`.
 
+### Arguments for Output Specification
 The output of each generation iteration of GeNESIS is saved within an output folder created by GeNESIS inside the [GeNESIS output folder](./hses_genesis/output).
 However, if you want to save your output in a specific location, you can specify that path with the `-o` flag.
 
@@ -82,6 +98,13 @@ However, GeNESIS also provides some additional, optional output formats:
 - By providing the `-yang` flag, GeNESIS outputs a ietf format conform yang.json file describing the generated network topology.
 - By providing the `-ipt` flag, GeNESIS outputs a `iptables-save` file for each router, containing the generated security configurations.
 - By providing the `-img` flag, GeNESIS outpus a vistual representation of the generated network topology as .png and .jpg.
+- By providing the `-omnet` flag, GeNESIS outputs a ready to import folder to an omnet++ project.
+  This fodler includes topology and traffic patterns to simulate.
+- By provifing the `-ns3` flag, GeNESIS outputs a multiple files ready to be included in an ns3 project.
+  The files include topology and traffic patterns to simulate.
+- By providing the `-latag` flag, GeNESIS will return an alternative GeNESIS-tag.
+  This tag is semantically identical but does not use the same compression logic as the default GeNESIS-tag.
+  Additionally, the latag is insertable into any latex project without any additional adjustments.
 
 ## Configurability
 The GeNESIS generation process is customizable by providing a valid .json configuration-file.
@@ -107,7 +130,7 @@ For each layer definition, you can specify:
 "layer_definitions":
    ...
    {
-      "per_upper_layer": X,
+      "subnet_descendants": X,
       "switch_count": X,
       "max_hosts_per_switch": X,
       "host_types": {
