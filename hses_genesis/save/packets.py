@@ -2,7 +2,7 @@ from csv import DictWriter
 from os.path import join
 from hses_genesis.utils.constants import OMNET_FOLDER, PACKET_FOLDER, PACKET_HEADERS, ZIMPL_FOLDER
 from hses_genesis.utils.enum_objects import EParameterKey
-from pkg_resources import resource_filename
+from hses_genesis.utils.functions import load_resource
 
 def to_csv(dst_location, packets):
     with open(join(dst_location, PACKET_FOLDER, 'packets.csv'), 'w') as file:
@@ -38,7 +38,7 @@ def to_omnet_ini(location, app_map):
                 if not any(packet['d'] == p['d'] and packet['-dport'] == p['-dport'] and a == 'TcpSinkApp' for (p, a) in packet_map[dst]):
                     packet_map[dst].append((packet, 'TcpSinkApp'))
 
-    with open(resource_filename('templates', 'omnetpp.ini'), 'r') as template, open(join(location, OMNET_FOLDER, f'omnetpp.ini'), 'w') as file:
+    with open(load_resource('templates', 'omnetpp.ini'), 'r') as template, open(join(location, OMNET_FOLDER, f'omnetpp.ini'), 'w') as file:
         file.writelines(template.readlines())
         file.write('\n')
 

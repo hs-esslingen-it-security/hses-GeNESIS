@@ -1,4 +1,4 @@
-include hses_genesis/templates/*.ned
-include hses_genesis/templates/*.ini
-include hses_genesis/templates/*.cc
-include hses_genesis/resources/configuration_hints.json
+include resources/templates/*.ned
+include resources/templates/*.ini
+include resources/templates/*.cc
+include resources/configurations/*.json

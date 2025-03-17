@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling", "setuptools ~= 58.0", "cython ~= 0.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hses_genesis"
+version = "1.2"
+authors = [
+    {name = "Samuel Mueller", email = "samuel.mueller@hs-esslingen.de"},
+    {name = "Lukas Bechtel", email = "lukas.bechtel@hs-esslingen.de"},
+    {name = "Lukas Popperl", email = "lukas.popperl@hs-esslingen.de"},
+]
+description = "GeNESIS - Generator for Network Evaluation Scenarios of Industrial Systems"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICENSE.md"]
+
+dependencies = [
+    "matplotlib",
+    "networkx",
+    "scipy"
+]
+
+[project.urls]
+Homepage = "https://github.com/hs-esslingen-it-security/hses-GeNESIS"

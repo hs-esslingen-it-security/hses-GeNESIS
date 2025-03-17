@@ -1,5 +1,6 @@
 from copy import copy
 from math import ceil
+
 from hses_genesis.generation.communication import CommunicationGenerator
 from hses_genesis.generation.dynamic_configuration import ConfigurationGenerator
 from hses_genesis.generation.network_configuration import NetworkConfigurationGenerator
@@ -14,7 +15,7 @@ from hses_genesis.save import rulesets as rulesets
 from argparse import ArgumentParser
 from os.path import abspath, dirname, join, basename, exists
 from networkx import shortest_simple_paths
-from hses_genesis.utils.functions import print_information
+from hses_genesis.utils.functions import load_resource, print_information
 
 def user_choice(prompt, choices, default = None):
     while True:
@@ -130,17 +131,17 @@ def perform_generation_cycle(base_location : str, config : GenerationConfig, exp
         topology.to_zimpl_parsable(G, run_location)
 
 parser = ArgumentParser()
-parser.add_argument('-j', '--json', help='location of json configuration file.', default=None)
-parser.add_argument('-g', '--genesis_tag', help='GeNESIS-TAG of a previous run.', default=None)
+parser.add_argument('-j', '--json', help='pass the name or absolute path of the configuration file to use.', default=None)
+parser.add_argument('-g', '--genesis_tag', help='pass the GeNESIS-TAG of a previous run.', default=None)
 parser.add_argument('-n', '--new_configuration', help='start the Interactive GeNESIS Configuration Generator to create a new configuration.', action='store_true')
 parser.add_argument('-o', '--output_location', help='set the output location for generated files.', default=join(dirname(abspath(__file__)), 'output'))
-parser.add_argument('-img', '--export_graph_images', help='use this to export an image of the network topology on creation.', action='store_true')
-parser.add_argument('-zpl', '--export_zimpl_parsables', help='use this to export the topology and rules as zimpl parsable txt files on creation.', action='store_true')
-parser.add_argument('-omnet', '--export_omnet_files', help='use this to export the topology and packets configuration files for omnet++.', action='store_true')
-parser.add_argument('-ns3', '--export_ns3_files', help='use this to export the topology and packets configuration files for ns3.', action='store_true')
-parser.add_argument('-yang', '--export_yang_files', help='use this to export the all outputs in a single json file.', action='store_true')
-parser.add_argument('-ipt', '--export_iptables_files', help='use this to export the scurity configuration as iptables save files.', action='store_true')
-parser.add_argument('-latag', '--use_latex_tag', help='use this to get the genesis tag in latex parsable form.', action='store_true')
+parser.add_argument('-img', '--export_graph_images', help='export a .png and a .jpg of the network topology.', action='store_true')
+parser.add_argument('-zpl', '--export_zimpl_parsables', help='export the topology and rules as zimpl parsable txt files.', action='store_true')
+parser.add_argument('-omnet', '--export_omnet_files', help='export the topology and packet configuration files for omnet++.', action='store_true')
+parser.add_argument('-ns3', '--export_ns3_files', help='export the topology and packet configuration files for ns3.', action='store_true')
+parser.add_argument('-yang', '--export_yang_files', help='export the all outputs in a single json file.', action='store_true')
+parser.add_argument('-ipt', '--export_iptables_files', help='export the scurity configurations as iptables save files.', action='store_true')
+parser.add_argument('-latag', '--use_latex_tag', help='get the genesis tag in latex parsable form.', action='store_true')
 
 args = parser.parse_args()
 
@@ -162,16 +163,15 @@ else:
 
 config : dict = {}
 
-
 if choice == 'n':
     config = GenerationConfig.from_dict(ConfigurationGenerator().edit_config())
     config_name = 'custom_config'
 elif choice == 'j':
     config_file = args.json
+    if not str(config_file).endswith('.json'):
+        config_file += '.json'
     if not exists(args.json):
-        config_file = join(join(dirname(__file__), 'resources', config_file))
-        if not exists(config_file):
-            raise Exception(f'No configuration file found at {config_file}.')
+        config_file = load_resource('configurations', config_file)
     config_name = basename(str(args.json)).removesuffix('.json')
     config : GenerationConfig = GenerationConfig.from_file(config_file, args.use_latex_tag)
 elif choice == 'g':
@@ -179,7 +179,8 @@ elif choice == 'g':
     config : GenerationConfig = GenerationConfig.from_str(args.genesis_tag, args.use_latex_tag)
 else:
     config_name = 'example_config'
-    config : GenerationConfig = GenerationConfig.from_file(join(dirname(__file__), 'resources/example_config.json'), args.use_latex_tag)
+    config_file = load_resource('configurations', f'{config_name}.json')
+    config : GenerationConfig = GenerationConfig.from_file(config_file, args.use_latex_tag)
 
 print('-' * TERMINAL_WIDTH)
 print(f'GeNESIS started with GeNESIS-TAG: {config.to_total_str()}')

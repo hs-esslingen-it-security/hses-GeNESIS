@@ -5,9 +5,9 @@ from matplotlib.pyplot import close, savefig
 from networkx import Graph, draw, write_graphml, spring_layout
 from os.path import join
 
-from pkg_resources import resource_filename
 from hses_genesis.utils.constants import NS3_FOLDER, OMNET_FOLDER, ZIMPL_FOLDER
 from hses_genesis.utils.enum_objects import EDeviceRole, EParameterKey
+from hses_genesis.utils.functions import load_resource
 
 def prepare_packets(G : Graph, packets = None):
     if not packets:
@@ -166,7 +166,7 @@ def to_omnet_ned(G : Graph, location):
         connections.append(f'\t\t{src}.ethg++ <--> ethline <--> {dst}.ethg++;\n')
 
     lines = []
-    with open(resource_filename('templates', 'template.ned'), 'r') as f:
+    with open(load_resource('templates', 'template.ned'), 'r') as f:
         for line in f.readlines():
             lines.append(line)
             if 'submodules:' in line:
@@ -358,7 +358,7 @@ def to_ns3_cc(G : Graph, location, generated_packets):
 
         return lines
 
-    with open(resource_filename('templates', 'template.cc'), 'r') as resource_file, open(join(location, NS3_FOLDER, 'genesis.cc'), 'w') as output_file:
+    with open(load_resource('templates', 'template.cc'), 'r') as resource_file, open(join(location, NS3_FOLDER, 'genesis.cc'), 'w') as output_file:
         for line in resource_file.readlines():
             output_file.write(line)
             for func in [create_nodes, add_names, create_links, create_bridges, install_bridges, install_end_device_ip_stack, install_router_ip_stack, assign_router_ips, assign_device_ips]:

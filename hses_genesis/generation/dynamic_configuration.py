@@ -1,10 +1,10 @@
 from enum import Enum
 from json import dumps, load
 from typing import Type
-from os.path import join, dirname
 
 from hses_genesis.utils.constants import MAX_HOSTS_PER_SWITCH_KEY, TERMINAL_WIDTH, LAYER_DEFINITIONS_KEY, STRUCTURE_KEY, SECURITY_KEY, COMMUNICATION_KEY, TOPOLOGY_KEY, ITERATIONS_KEY, SUBNET_DESCENDANTS_KEY, SWITCH_COUNT_KEY, HOST_TYPES_KEY, ANOMALY_COUNT_KEY, STATEFUL_PERCENTAGE_KEY, TRAFFIC_PROFILE_KEY, UPPER_CONNECTION_BOUND_KEY
 from hses_genesis.utils.enum_objects import EDeviceRole, ESubnetTopologyStructure
+from hses_genesis.utils.functions import load_resource
 
 class EResponse(Enum):
     ANSWER = 0
@@ -25,8 +25,7 @@ class ConfigurationGenerator():
             }
         }
 
-
-        hint_location = join(dirname(dirname(__file__)), 'resources', 'configuration_hints.json')
+        hint_location = load_resource('configurations', 'configuration_hints.json')
         with open(hint_location, 'r') as f:
             self.parameter_info = dict(load(f))
 
