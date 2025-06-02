@@ -226,7 +226,7 @@ class ConfigurationGenerator():
             return remaining_hosts >= 0
 
         if default_values == None:
-            default_values = {key.name : 0 for key in EDeviceRole.configurables()}
+            default_values = {key.name : 0 for key in EDeviceRole.hosts()}
 
         self.print_config_info(HOST_TYPES_KEY, default_values)
 
@@ -235,7 +235,7 @@ class ConfigurationGenerator():
             value_info = {key.name : {
                 'typing' : int,
                 'default_value' : default_values.get(key.name, 0)
-            } for key in EDeviceRole.configurables()}
+            } for key in EDeviceRole.hosts()}
 
             response, default_values = self.setup_segment(contained_keys=value_info, help_key=HOST_TYPES_KEY)
             if response == EResponse.INTERRUPT:

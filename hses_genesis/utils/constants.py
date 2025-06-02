@@ -16,10 +16,21 @@ REPETITIONS_KEY = 'repetitions'
 SUBNET_DESCENDANTS_KEY = 'subnet_descendants'
 
 TRAFFIC_PROFILE_KEY = "traffic_profile"
+
 UPPER_CONNECTION_BOUND_KEY = "upper_connection_bound"
+
+CONTROL_TRAFFIC_REQUIREMENT_KEY = "control_traffic_requirement"
+
+BEST_EFFORT_TRAFFIC_REQUIREMENT_KEY = "best_effort_traffic_requirement"
 
 ANOMALY_COUNT_KEY = "anomaly_count"
 STATEFUL_PERCENTAGE_KEY = "stateful_percentage"
+
+MESHING_KEY = 'meshing'
+
+SUBNET_CONNECTIVITY_KEY = 'subnet_connectivity'
+
+HOST_CONNECTIVITY_KEY = 'host_connectivity'
 
 SMALL_SEPARATOR = '·'
 
@@ -60,6 +71,8 @@ NS3_FOLDER = 'ns3'
 ZIMPL_FOLDER = 'zimpl'
 
 PACKET_FOLDER = 'packets'
+
+ACL_RULE_COUNT = 256
 
 TERMINAL_WIDTH = 44
 

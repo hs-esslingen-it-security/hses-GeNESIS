@@ -1,3 +1,5 @@
 hses_genesis/output
 build
 *.egg-info
+.venv
+dist

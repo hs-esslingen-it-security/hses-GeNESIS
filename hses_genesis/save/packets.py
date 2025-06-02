@@ -22,20 +22,20 @@ def to_omnet_ini(location, app_map):
     packet_map = {}
     for packets in app_map.values():
         for packet in packets:
-            src, dst = packet['s'], packet['d']
+            src, dst = packet['SourceName'], packet['DestinationName']
             if src not in packet_map.keys():
                 packet_map[src] = []
 
             if dst not in packet_map.keys():
                 packet_map[dst] = []
 
-            if packet['p'] == 'udp':
+            if packet['Protocol'] == 'udp':
                 packet_map[src].append((packet, 'UdpBasicApp'))
-                if not any(packet['d'] == p['d'] and packet['-dport'] == p['-dport'] and a == 'UdpSink' for (p, a) in packet_map[dst]):
+                if not any(packet['DestinationName'] == p['DestinationName'] and packet['DestinationPort'] == p['DestinationPort'] and a == 'UdpSink' for (p, a) in packet_map[dst]):
                     packet_map[dst].append((packet, 'UdpSink'))
             else:
                 packet_map[src].append((packet, 'TcpClientApp'))
-                if not any(packet['d'] == p['d'] and packet['-dport'] == p['-dport'] and a == 'TcpSinkApp' for (p, a) in packet_map[dst]):
+                if not any(packet['DestinationName'] == p['DestinationName'] and packet['DestinationPort'] == p['DestinationPort'] and a == 'TcpSinkApp' for (p, a) in packet_map[dst]):
                     packet_map[dst].append((packet, 'TcpSinkApp'))
 
     with open(load_resource('templates', 'omnetpp.ini'), 'r') as template, open(join(location, OMNET_FOLDER, f'omnetpp.ini'), 'w') as file:
@@ -55,28 +55,28 @@ def to_omnet_ini(location, app_map):
                     if app_type == 'UdpBasicApp':
                         file.write(f'**.{src}.app[{i}].stopTime = 25s\n')
                         mappings.extend([
-                            ('localPort', '-sport', lambda _: -1),
-                            ('sendInterval', 'packets_per_second', lambda x: f'{round(1 / x, 3)}s'),
-                            ('messageLength', 'packet_size', lambda x: f'{x}B'),
-                            ('destAddresses', 'd', lambda x: f'"{x}"'),
-                            ('destPort', '-dport', lambda x: x),
+                            ('localPort', 'SourcePort', lambda _: -1),
+                            ('sendInterval', 'PacketsPerSecond', lambda x: f'{round(1 / x, 3)}s'),
+                            ('messageLength', 'PacketSize', lambda x: f'{x}B'),
+                            ('destAddresses', 'DestinationName', lambda x: f'"{x}"'),
+                            ('destPort', 'DestinationPort', lambda x: x),
                         ])
                     else:
                         mappings.append(
-                            ('localPort', '-sport', lambda x: x)
+                            ('localPort', 'SourcePort', lambda x: x)
                         )
                 else:
                     if app_type == 'TcpClientApp':
                         file.write(f'**.{src}.app[{i}].source.packetData = intuniform(0,1)\n')
                         mappings.extend([
-                            ('io.localPort', '-sport', lambda _: -1),
-                            ('io.connectAddress', 'd', lambda x: f'"{x}"'),
-                            ('io.connectPort', '-dport', lambda x: x),
-                            ('source.productionInterval', 'packets_per_second', lambda x: f'{round(1 / x, 3)}s'),
-                            ('source.packetLength', 'packet_size', lambda x: f'{x}B'),
+                            ('io.localPort', 'SourcePort', lambda _: -1),
+                            ('io.connectAddress', 'DestinationName', lambda x: f'"{x}"'),
+                            ('io.connectPort', 'DestinationPort', lambda x: x),
+                            ('source.productionInterval', 'PacketsPerSecond', lambda x: f'{round(1 / x, 3)}s'),
+                            ('source.packetLength', 'PacketSize', lambda x: f'{x}B'),
                         ])
                     else:
-                        mappings.append(('localPort', '-dport', lambda x: x))
+                        mappings.append(('localPort', 'DestinationPort', lambda x: x))
 
                 for param, packet_key, mapping_func in mappings:
                     file.write(f'**.{src}.app[{i}].{param} = {mapping_func(packet[packet_key])}\n')

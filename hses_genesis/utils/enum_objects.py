@@ -1,5 +1,6 @@
 from enum import Enum
 from types import SimpleNamespace
+from networkx import Graph, simple_cycles
 
 class EGenerationSteps(Enum):
     TOPOLOGY = 0
@@ -59,6 +60,26 @@ class ESubnetTopologyStructure(Enum):
     def redundant_types():
         return [ESubnetTopologyStructure.RING, ESubnetTopologyStructure.MESH]
         
+    @staticmethod
+    def from_topology(G : Graph):
+        try:
+            cycles = list(simple_cycles(G))
+        except Exception as e:
+            print(e)
+            cycles = None
+        
+        if cycles and any(all(node in cycle for node, data in G.nodes(data=True) if data['role'] in [EDeviceRole.SWITCH, EDeviceRole.ROUTER]) for cycle in cycles):
+            return ESubnetTopologyStructure.RING
+
+        else:
+            switch_graph = G.subgraph([node for node, data in G.nodes(data=True) if data['role'] == EDeviceRole.SWITCH])
+            if len(list(simple_cycles(switch_graph))) > 0:
+                return ESubnetTopologyStructure.MESH
+            elif any(switch_graph.degree(switch) > 2 for switch in switch_graph.nodes):
+                return ESubnetTopologyStructure.STAR
+        
+        return ESubnetTopologyStructure.LINE
+
 
 class EState(Enum):
     NONE = 0
@@ -78,16 +99,23 @@ class EState(Enum):
     
 
 class EService(Enum):
+    # bei high: tolerated_packet_loss - 1
     SSH = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [22], 'packet_size_range' : [512,1500], 'priority' : 1, 'dei' : 0})
     HTTP = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [80], 'packet_size_range' : [64,1500], 'priority' : 1, 'dei' : 0})
     HTTPS = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [443], 'packet_size_range' : [64,1500], 'priority' : 1, 'dei' : 0})
-    OPC_UA = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [4840], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
     NETCONF = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [830], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
-    IP_Camera = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [554], 'packet_size_range' : [1000,1500], 'priority' : 1, 'dei' : 0}) # rtsp uses mostly tcp --> no signature protocol number in ip header
+    IP_Camera = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [554], 'packet_size_range' : [1000,1500], 'priority' : 1, 'dei' : 0}) # rstp uses mostly tcp --> no signature protocol number in ip header
+    
+    # bei high: semaless_paths +1
+    OPC_UA = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [4840], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
     ModbusTCP = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [502], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
     EthernetIP = SimpleNamespace(**{'protocols' : ['tcp', 'udp'], 'ports' : [44818, 2222], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
     EtherCAT = SimpleNamespace(**{'protocols' : ['udp'], 'ports' : [34980], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
     ProfiNet = SimpleNamespace(**{'protocols' : ['udp'], 'ports' : [34962,34963,34964,53247], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
+
+    # CB braucht fixe Pfade! --> d.h. es müssen 2 disjunkte Pfade berechent werden
+
+    # TODO: implementierung von PRIORITY_PROFILES: None, Realistic, High; Manipulieren seamless_paths und tolerated_packet_loss; Für seamless paths: Ausgeben der benltigten parallelen pfade; für tolerated_packet_loss entweder CB oder RSTP.
 
     def __str__(self) -> str:
         return self.name
@@ -99,14 +127,27 @@ class EService(Enum):
                 return v
             
         raise Exception(f'Unknown Service passed: {value}.')
+    
+    @staticmethod
+    def control_traffic():
+        return [
+            EService.OPC_UA,
+            EService.ModbusTCP,
+            EService.EthernetIP,
+            EService.EtherCAT,
+            EService.ProfiNet
+        ]
 
-    def to_dict(self):
-        protocols, ports, _, _ = self.value
-        return {
-            "service": self.name, 
-            "protocols": protocols, 
-            "ports": ports
-        }
+    @staticmethod
+    def best_effort():
+        return [
+            EService.SSH,
+            EService.HTTP,
+            EService.HTTPS,
+            EService.NETCONF,
+            EService.IP_Camera
+        ]
+
 
 class EDeviceRole(Enum):
     SERVER = 'SV'
@@ -132,12 +173,12 @@ class EDeviceRole(Enum):
         return matches[0]
     
     @staticmethod
-    def configurables():
+    def hosts():
         return [EDeviceRole.SERVER, EDeviceRole.IT_END_DEVICE, EDeviceRole.OT_END_DEVICE, EDeviceRole.CONTROLLER]
     
     @staticmethod
     def from_configurables_id(value : str):
-        for v in EDeviceRole.configurables():
+        for v in EDeviceRole.hosts():
             if value.startswith(v.name[0]):
                 return v
         raise Exception(f'No configurable with name {value} supported.')

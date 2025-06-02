@@ -1,71 +1,76 @@
 from ipaddress import ip_address, ip_network
 from json import dumps
+from typing import Optional
 from warnings import warn
 from matplotlib.pyplot import close, savefig
 from networkx import Graph, draw, write_graphml, spring_layout
 from os.path import join
 
-from hses_genesis.utils.constants import NS3_FOLDER, OMNET_FOLDER, ZIMPL_FOLDER
+from hses_genesis.utils.constants import ACL_RULE_COUNT, NS3_FOLDER, OMNET_FOLDER, ZIMPL_FOLDER
 from hses_genesis.utils.enum_objects import EDeviceRole, EParameterKey
 from hses_genesis.utils.functions import load_resource
 
-def prepare_packets(G : Graph, packets = None):
-    if not packets:
-        return []
-    
-    output = []
-    for packet in packets:
-        output.append(
-            {
-                EParameterKey.SRC.value : G.nodes(packet[EParameterKey.SRC.value])['ip'],
-                EParameterKey.DST.value : G.nodes(packet[EParameterKey.DST.value])['ip'],
-                EParameterKey.PROTOCOL.value : packet[EParameterKey.PROTOCOL.value],
-                EParameterKey.SRC_PORT.value : packet[EParameterKey.SRC_PORT.value],
-                EParameterKey.DST_PORT.value : packet[EParameterKey.DST_PORT.value],
-                'packet_size' : packet['packet_size'],
-                'packets_per_second' : packet['packets_per_second']
-            }
-        )
-    return output
-    
 def prepare_topology(G):
-    g_copy = G.copy()
-    for n, data in g_copy.nodes(data = True):
-        if 'services' in data.keys():
-            g_copy.nodes[n]['services'] = ','.join([service.name for service in data['services']])
+        g_copy = G.copy()
+        for n, data in g_copy.nodes(data = True):
+            if 'services' in data.keys():
+                g_copy.nodes[n]['services'] = ','.join([service.name for service in data['services']])
 
-        if data['role'] == EDeviceRole.ROUTER:
-            g_copy.nodes[n]['subnet'] = ','.join(g_copy.nodes[n]['subnet'])
-            g_copy.nodes[n]['ip'] = ','.join(g_copy.nodes[n]['ip'])
+            for key, joiner in [['subnet', ','], ['ip', ','], ['ruleset', '\n'], ['default_action', None], ['role', None]]:
+                data = g_copy.nodes[n]
+                if key in data.keys():
+                    value = data[key]
+                    if not isinstance(value, str):
+                        if joiner != None:
+                            g_copy.nodes[n][key] = joiner.join([str(v) for v in data[key]])
+                        else:
+                            g_copy.nodes[n][key] = data[key].name
+        return g_copy
+
+def to_ietf(G : Graph, location, generated_packets : Optional[dict] = None):
+    def prepare_packets(G : Graph, packets : Optional[dict] = None):
+        if not packets:
+            return []
         
-        for key, joiner in [['ruleset', '\n'], ['default_action', None], ['role', None]]:
-            if key in g_copy.nodes[n].keys():
-                if joiner != None:
-                    g_copy.nodes[n][key] = joiner.join([str(v) for v in g_copy.nodes[n][key]])
-                else:
-                    g_copy.nodes[n][key] = g_copy.nodes[n][key].name
-    return g_copy
-
-def to_ietf(G : Graph, location, generated_packets = None):
+        output = []
+        for _, packet in packets.items():
+            output.append(
+                {
+                    EParameterKey.SRC.value : G.nodes(packet[EParameterKey.SRC.value])['ip'],
+                    EParameterKey.DST.value : G.nodes(packet[EParameterKey.DST.value])['ip'],
+                    EParameterKey.PROTOCOL.value : packet[EParameterKey.PROTOCOL.value],
+                    EParameterKey.SRC_PORT.value : packet[EParameterKey.SRC_PORT.value],
+                    EParameterKey.DST_PORT.value : packet[EParameterKey.DST_PORT.value],
+                    'packet_size' : packet['packet_size'],
+                    'packets_per_second' : packet['packets_per_second']
+                }
+            )
+        return output
+    
     ietf_nodes = []
     for dev in G.nodes:
         if EDeviceRole.from_device_id(dev) == EDeviceRole.PORT:
             continue
 
+        node_data = G.nodes[dev]
+
+        service_values = [{'name' : service.name, 'protocols' : service.value.protocols, 'ports' : service.value.protocols} for service in node_data['services']]
+
         ietf_node = {
             'node_id' : dev.lower(),
-            'services' : [service.to_dict() for service, _ in G.nodes[dev]['services']]
+            'services' : service_values
         }
+
         for key in ['role', 'ip', 'subnet', 'branch', 'layer']:
             if key == 'services':
                 continue
-            ietf_node[key] = G.nodes[dev][key]
+            ietf_node[key] = node_data[key]
 
         for enum_key in ['default_action', 'role']:
-            ietf_node[enum_key] = G.nodes[dev][enum_key].name if enum_key in G.nodes[dev] else '' 
+            ietf_node[enum_key] = node_data[enum_key].name if enum_key in node_data else '' 
         
-        ietf_node['ruleset'] = G.nodes[dev]['ruleset'] if 'ruleset' in G.nodes[dev] else []
-        ietf_node['packets'] = [] if generated_packets == None or dev not in generated_packets else prepare_packets(generated_packets[dev])
+        ietf_node['ruleset'] = node_data['ruleset'] if 'ruleset' in node_data else []
+        ietf_node['packets'] = list() if (generated_packets == None) else prepare_packets(generated_packets.get(dev, None))
         if EDeviceRole.from_device_id(dev) not in [EDeviceRole.ROUTER, EDeviceRole.SWITCH]:
             ietf_node['termination_point'] = [f'{dev.lower()}#0']
         else:
@@ -106,13 +111,13 @@ def to_ietf(G : Graph, location, generated_packets = None):
 def to_zimpl_parsable(G, location):
     zimpl_location = join(location, ZIMPL_FOLDER)
     with open(join(zimpl_location, 'vertices.txt'), 'w') as file:
-        file.write('# <id,ip,is_container>\n')
+        file.write('# <id,ip,container_capacity>\n')
         for node, data in G.nodes(data = True):
             if data['role'] == EDeviceRole.ROUTER:
                 for ip in data["ip"]:
-                    file.write(f'{node},{int(ip_address(ip))},{int(False)}\n')
+                    file.write(f'{node},{int(ip_address(ip))},{-1}\n')
             else:
-                file.write(f'{node},{int(ip_address(data["ip"]))},{int(data["role"] == EDeviceRole.SWITCH)}\n')
+                file.write(f'{node},{int(ip_address(data["ip"]))},{ACL_RULE_COUNT if data["role"] == EDeviceRole.SWITCH else 0}\n')
     
     with open(join(zimpl_location, 'edges.txt'), 'w') as edges_file, open(join(zimpl_location, 'ip_edges.txt'), 'w') as ip_edges_file:
         edges_file.write('# <src_id,dst_id>weight\n')
@@ -151,7 +156,7 @@ def to_omnet_ned(G : Graph, location):
             }
 
             if data['role'] == EDeviceRole.ROUTER:
-                target_hosts = [n for n, d in G.nodes(data=True) if n != node and d['subnet'] == subnet and d['role'] in EDeviceRole.configurables()]
+                target_hosts = [n for n, d in G.nodes(data=True) if n != node and d['subnet'] == subnet and d['role'] in EDeviceRole.hosts()]
                 if len(target_hosts) == 0:
                     warn(f'Invalid Configuration Exception: Cannot determine interface target for {node} in interface {subnet} ({[n for n, d in G.nodes(data=True) if d["subnet"] == subnet]}). You probably defined a layer without any end devices.')
                     continue
@@ -189,7 +194,7 @@ def to_omnet_ned(G : Graph, location):
 def to_graphml(G, location, file_name = 'graph.graphml'):
     write_graphml(prepare_topology(G), join(location, file_name))
 
-def to_ns3_cc(G : Graph, location, generated_packets):
+def to_ns3_cc(G : Graph, location, generated_packets : Optional[dict]):
 
     def create_nodes(G : Graph):
         return [f'Ptr<Node> {node} = CreateObject<Node>();' for node in G.nodes]
@@ -226,7 +231,7 @@ def to_ns3_cc(G : Graph, location, generated_packets):
         return [f'bridge.Install({node}, {node}nd);' for node, data in G.nodes(data=True) if data['role'] == EDeviceRole.SWITCH]
 
     def install_end_device_ip_stack(G : Graph):
-        end_points = ', '.join([node for node, data in G.nodes(data = True) if data['role'] in EDeviceRole.configurables()])
+        end_points = ', '.join([node for node, data in G.nodes(data = True) if data['role'] in EDeviceRole.hosts()])
         return [f'NodeContainer endpointNodes({end_points});', 'ns3IpStack.Install(endpointNodes);']
     
     def install_router_ip_stack(G : Graph):
@@ -277,7 +282,7 @@ def to_ns3_cc(G : Graph, location, generated_packets):
     def assign_device_ips(G : Graph):
         lines = []
         for node, data in G.nodes(data=True):
-            if data['role'] not in EDeviceRole.configurables():
+            if data['role'] not in EDeviceRole.hosts():
                 continue
             lines.append('')
             lines.append(f'Ptr<NetDevice> {node}NetDevice= {node}->GetDevice(0);')
@@ -311,19 +316,17 @@ def to_ns3_cc(G : Graph, location, generated_packets):
             lines.append(f'{prefix}ClientApp.Stop(Seconds(simDurationSeconds));')
             return lines
 
-        udp_packets = [packet for _, packets in packet_map.items() for packet in packets if packet[EParameterKey.PROTOCOL.value] == 'udp']
-        servers = set([packet[EParameterKey.DST.value] for packet in udp_packets])
+        udp_packets = [packet for _, packets in packet_map.items() for packet in packets if packet['Protocol'] == 'udp']
+        servers = set([packet['DestinationName'] for packet in udp_packets])
         lines = add_servers(servers)
         for i, server in enumerate(servers):
-            related_sinks = set([(packet[EParameterKey.SRC.value], packet[f'{EParameterKey.DST.name.lower()}_ip']) for packet in udp_packets if packet[EParameterKey.DST.value] == server])
+            related_sinks = set([(packet['SourceName'], packet[f'DestinationIp']) for packet in udp_packets if packet['DestinationName'] == server])
             for node, server_ip in related_sinks:
                 lines += add_sink(node, server_ip, i)
         
         return lines
 
-
-
-    def install_tcp(G : Graph, packet_map):
+    def install_tcp(G : Graph, packet_map : dict):
         def add_server(node, ip, port, prefix):
             lines = ['']
             lines.append(f'Ptr<Socket> {prefix}ServerSocket = Socket::CreateSocket({node}, TcpSocketFactory::GetTypeId());')
@@ -340,20 +343,20 @@ def to_ns3_cc(G : Graph, location, generated_packets):
             lines.append(f'Simulator::Schedule(Seconds(2.0), &SendPacket, {prefix}ClientSocket, {message_length}, Seconds({send_interval}));')
             return lines
         
-        tcp_packets = [packet for _, packets in packet_map.items() for packet in packets if packet[EParameterKey.PROTOCOL.value] == 'tcp']
+        tcp_packets = [packet for _, packets in packet_map.items() for packet in packets if packet['Protocol'] == 'tcp']
 
-        servers = set([(packet[EParameterKey.DST.value], packet[EParameterKey.DST_PORT.value]) for packet in tcp_packets])
+        servers = set([(packet['DestinationName'], packet['DestinationName']) for packet in tcp_packets])
         lines = []
         for i, (server, port) in enumerate(servers):
             server_prefix = f'{server}_{port}'
             lines += add_server(server, G.nodes[server]['ip'], port, server_prefix)
 
-            packets = [packet for packet in tcp_packets if packet[EParameterKey.DST.value] == server]
+            packets = [packet for packet in tcp_packets if packet['DestinationName'] == server]
             for j, packet in enumerate(packets):
-                node = packet[EParameterKey.SRC.value]
+                node = packet['SourceName']
                 prefix = f'{node}_{i}_{j}'
-                send_interval = round(1/ packet['packets_per_second'], 3)
-                message_length = packet['packet_size']
+                send_interval = round(1/ packet['PacketsPerSecond'], 3)
+                message_length = packet['PacketSize']
                 lines += add_socket(node, server_prefix, prefix, message_length, send_interval)
 
         return lines
@@ -365,9 +368,10 @@ def to_ns3_cc(G : Graph, location, generated_packets):
                 if func.__name__ in line:
                     output_file.writelines(map(lambda x: f'\t{x}\n', func(G)))
 
-            for func in [install_udp, install_tcp]:
-                if func.__name__ in line:
-                    output_file.writelines(map(lambda x: f'\t{x}\n', func(G, generated_packets)))
+            if generated_packets:
+                for func in [install_udp, install_tcp]:
+                    if func.__name__ in line:
+                        output_file.writelines(map(lambda x: f'\t{x}\n', func(G, generated_packets)))
 
 def to_image(G, location, seed=None):
     g_copy = G.copy()
@@ -403,6 +407,7 @@ def to_image(G, location, seed=None):
             size_map.append(100)
 
     draw(g_copy, node_color=color_map, node_size=size_map, edgecolors=border_map, with_labels=False, pos=spring_layout(g_copy, seed=seed))
-    savefig(join(location, f'graph.png'), dpi=300)
-    savefig(join(location, f'graph.jpg'), dpi=300)
+    savefig(join(location, f'graph_unlabeled.png'), dpi=300)
+    draw(g_copy, node_color=color_map, node_size=size_map, edgecolors=border_map, with_labels=True, pos=spring_layout(g_copy, seed=seed))
+    savefig(join(location, f'graph_labeled.png'), dpi=300)
     close()

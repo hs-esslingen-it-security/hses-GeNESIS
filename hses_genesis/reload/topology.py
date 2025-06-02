@@ -15,4 +15,7 @@ def from_file(file_dir, debug = False):
             G.nodes[n]['services'] = list(map(lambda x: EService.from_str(x), node_info['services'].split(','))) if ',' in G.nodes[n]['services'] else []
         if 'default_action' in node_info.keys():
             G.nodes[n]['default_action'] = EPacketDecision.from_str(node_info['default_action'])
+        
+        G.nodes[n]['ip'] = node_info['ip'].split(',')
+        G.nodes[n]['subnet'] = node_info['subnet'].split(',')
     return G

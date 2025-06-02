@@ -10,10 +10,11 @@ def setup_base_location(config : GenerationConfig, output_location, config_name 
     location = join(output_location, config_name, testrun_id)
     makedirs(location, exist_ok = True)
 
-    config.to_total_file(join(location, 'config.json'))
+    config.to_file(join(location, 'config.json'))
 
     with open(join(location, '.genesistag'), 'x') as file:
-        file.write(config.to_total_str())
+        file.write(config.to_tag(short_tag=True) + '\n')
+        file.write(config.to_tag())
 
     return location
 
@@ -26,9 +27,10 @@ def setup_run_location(config : GenerationConfig, base_location : str, run_label
         i += 1
     makedirs(run_location, exist_ok=True)
 
-    config.to_run_file(join(run_location, 'config.json'))
+    config.to_file(join(run_location, 'config.json'), run_specific=True)
     with open(join(run_location, '.genesistag'), 'x') as file:
-        file.write(config.to_run_str())
+        file.write(config.to_tag(run_specific=True, short_tag=True) + '\n')
+        file.write(config.to_tag(run_specific=True))
 
     for subfolder in [GRAPH_FOLDER, PACKET_FOLDER] + ([RULESET_FOLDER] if export_iptables_files else []):
         sublocation = join(run_location, subfolder)

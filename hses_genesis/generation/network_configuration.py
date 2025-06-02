@@ -13,6 +13,7 @@ class NetworkConfigurationGenerator():
         src, dst, (prot_start, prot_end), sport, dport, (state_start, state_end), action = raw_rule
         rule = []
         for (start, end) in [src, dst]:
+            start, end = start[0], end[0]
             if start == end:
                 rule.append(str(ip_address(start)))
                 continue
@@ -51,7 +52,7 @@ class NetworkConfigurationGenerator():
 
     @staticmethod
     def to_numerical_representation(raw_rule):
-        ip_addresses = [int(ip_address(value)) for value_range in raw_rule[0:2] for value in list(value_range)]
+        ip_addresses = [int(ip_address(value[0])) for value_range in raw_rule[0:2] for value in list(value_range)]
         protocols = [PROTOCOLS[value.lower()] if isinstance(value, str) else value for value in raw_rule[2]]
         ports = [int(value) for value_range in raw_rule[3:5] for value in list(value_range)]
         states = [state.value for state in list(raw_rule[5])]

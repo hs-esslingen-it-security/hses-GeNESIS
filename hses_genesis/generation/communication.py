@@ -1,7 +1,17 @@
 from random import Random
-from networkx import Graph, has_path, shortest_simple_paths
+from networkx import Graph
 from hses_genesis.utils.enum_objects import EDeviceRole, EService, EState, ETrafficProfile, ENetworkLayer
 from hses_genesis.utils.functions import print_information
+from os.path import pardir
+
+def get_metadata(total_connections, forbidden_connections, intrasubnet_connections, intersubnet_connections, sampled_connections):
+    return {
+        'number_of_possible_communication_pairs' : len(total_connections),
+        'number_of_forbidden_communication_pairs' : len(forbidden_connections),
+        'number_of_allowed_intrasubnet_communication_pairs' : len(intrasubnet_connections),
+        'number_of_allowed_intersubnet_communication_pairs' : len(intersubnet_connections),
+        'sampled_intersubnet_communication_paits' : len(sampled_connections)
+    }
 
 def print_connection_info(total_connections, forbidden_connections, intrasubnet_connections, intersubnet_connections, sampled_connections, traffic_profile = ETrafficProfile.STRICT_ISOLATION):
     print_information('CONNECTION INFORMATION', {
@@ -20,7 +30,7 @@ class CommunicationGenerator():
     def get_intrasubnet_connections(self, G : Graph):
         connections = []
         for (src_node, src_data) in G.nodes(data=True):
-            if src_data['role'] not in EDeviceRole.configurables():
+            if src_data['role'] not in EDeviceRole.hosts():
                 continue
 
             initiating_services = [(service_name, service_states) for (service_name, service_states) in src_data['services'] if EState.NEW in service_states] 
@@ -28,7 +38,7 @@ class CommunicationGenerator():
                 continue
 
             for (dst_node, dst_data) in G.nodes(data=True):
-                if (src_node == dst_node) or (src_data['subnet'] != dst_data['subnet']) or (dst_data['role'] not in EDeviceRole.configurables()):
+                if (src_node == dst_node) or (src_data['subnet'] != dst_data['subnet']) or (dst_data['role'] not in EDeviceRole.hosts()):
                     continue
 
                 overlapping_services = [src_service for (src_service, _) in src_data['services'] if src_service in [dst_service for (dst_service, dst_service_states) in dst_data['services'] if (EState.ESTABLISHED in dst_service_states or EState.RELATED in dst_service_states)]]
@@ -70,7 +80,7 @@ class CommunicationGenerator():
         intersubnet_connections = []
 
         for (src_node, src_data) in G.nodes(data=True):
-            if src_data['role'] not in EDeviceRole.configurables():
+            if src_data['role'] not in EDeviceRole.hosts():
                 continue
             
             initiating_services = [service for service in src_data['services'] if EState.NEW in src_data['role'].possible_service_states(service)] 
@@ -78,11 +88,11 @@ class CommunicationGenerator():
                 continue
 
             for (dst_node, dst_data) in G.nodes(data=True):
-                if (src_node == dst_node) or (dst_data['role'] not in EDeviceRole.configurables()):
+                if (src_node == dst_node) or (dst_data['role'] not in EDeviceRole.hosts()):
                     continue
 
                 overlapping_services = [src_service for src_service in src_data['services'] if src_service in dst_data['services']]
-                if not overlapping_services or not has_path(G, src_node, dst_node):
+                if not overlapping_services:
                     continue
 
                 connections = [(src_node, dst_node, service) for service in overlapping_services]
@@ -118,16 +128,7 @@ class CommunicationGenerator():
         else:
             sampled_connections = self.random.sample(intersubnet_connections, k=upper_connection_bound)
 
-        print_connection_info(total_connections=total_connections, forbidden_connections=forbidden_connections, intrasubnet_connections=intrasubnet_connections, intersubnet_connections=intersubnet_connections, sampled_connections=sampled_connections, traffic_profile=traffic_profile)
-
-        return intrasubnet_connections, sampled_connections
-    
-    def get_affected_connections(self, G : Graph, router : str, allowed_connections):
-        output = []
-        for source, target, p, sport, dport in allowed_connections:
-            if any(router in path for path in shortest_simple_paths(G, source, target)):
-                output.append((G.nodes[source]['ip'], G.nodes[target]['ip'], p, sport, dport))
-        return output
+        return total_connections, forbidden_connections, intrasubnet_connections, intersubnet_connections, sampled_connections
     
     def generate_packet(self, service : EService, src_node : str, src_data : dict, dst_node : str, dst_data : dict, protocol : str, port : int, is_high_sender = False):
         return {
@@ -141,7 +142,7 @@ class CommunicationGenerator():
 
             # 802.1Q
             'PriorityCodePoint' : service.value.priority,
-            'DropEligibleIndicator' : service.value.dei, 
+            'DropEligibleIndicator' : service.value.dei,
             'VlanIndicator' : 1,
             
             # IP

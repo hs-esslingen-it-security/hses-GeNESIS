@@ -63,38 +63,47 @@ As GeNESIS operates in three different, consecutive steps, i.e., topology genera
 In the following sections, we will briefly discuss the effects of each configurable parameter in each part of the configuration file.
 
 #### Topology
-The topology part of the configuration file contains iterations and layer definitions:
+The topology part of the configuration file contains iterations, meshing, subnet connectivity, host connectivity and layer definitions:
 ```
 "topology": {
-   "iterations": X,
+   "iterations": _,
+   "meshing": _,
+   "subnet_connectivity": _,
+   "host_connectivity": _,
    "layer_definitions": [
       ...
    ]
 }
 ```
-As for every step, you can specify the topology generation step to be executed multiple times, i.e., setting `"iterations": 2` will cause GeNESIS to generate 2 different topologies based on the given configurations.
+
+|Parameter|Description|Default Value|
+|:-|:-|:-|
+|iterations|Configures the number of times the topology generation step is executed. |`1`|
+|meshing|Configures the meshing degree, i.e., the number of switches a switch is connected to in it's own subnet, of subnets with MESH structure. |`None`|
+|subnet connectivity|Configures the number of routers generated between neighboring subnets.|`2`|
+|host connectivity|Configures the number of switches each host is conencted to.|`1`|
 
 For each layer definition, you can specify:
 ```
 "layer_definitions":
    ...
    {
-      "switch_count": X,
-      "max_hosts_per_switch": X,
+      "switch_count": _,
+      "max_hosts_per_switch": _,
       "host_types": {
-         "SERVER": X,
-         "IT_END_DEVICE": X,
-         "OT_END_DEVICE": X,
-         "CONTROLLER": X
+         "SERVER": _,
+         "IT_END_DEVICE": _,
+         "OT_END_DEVICE": _,
+         "CONTROLLER": _
       },
       "structure_distribution": {
-         "STAR": X,
-         "RING": X,
-         "LINE": X,
-         "MESH": X
+         "STAR": _,
+         "RING": _,
+         "LINE": _,
+         "MESH": _
       },
-      "subnet_descendants": X,
-      "repetitions": X
+      "subnet_descendants": _,
+      "repetitions": _
    },
    ...
 ```
@@ -121,29 +130,29 @@ The properties of the layer definition can be grouped in two different categorie
 **Subnet Structure Properties** define the layout of subnets contained in layers defined by a layer definition.
 For example, in the example topology above, the layer definition configuring Layer 1 specifies the layout of Subnet 1 and Subnet 2.
 The subnets are customizable by the following properties:
-- `switch_count` defines the number of switches contained in each subnet of the defined layer.
-- `max_host_per_switch` defines the number of devices connected to each switch in each subnet of the defined layer.
-- `host_types` defines the different kinds of devices found in each subnet of the defined layer.
-GeNESIS supports four different host types: `SERVER`, `CONTROLLER`, `OT_END_DEVICE`, and `IT_END_DEVICE`.
-You can specify the occurance of each of these types in two different ways:
-First, by assigning them a specific number, and second, by setting their value to `-1`.
-If a positive integer is provided, GeNESIS will generate that exact number of devices in each subnet of the defined layer.
-If a negative integer is provided, GeNESIS will create devices of that type, until each switch of the subnet is connected to exactly `max_host_per_switch` switches.
-- `structure_distribution` describes the structure type of the subnets of the defined layer.
-This parameter is specified as a distribution, e.g., if you provide `{"RING": 1, "LINE":1}`, a generated subnet has a 50:50 chance to be either a ring or a line network.
+|Parameter|Description|Default Value|
+|:-|:-|:-|
+|switch count| Configures the number of switches contained in each subnet of the defined layer. |`1`|
+|max hosts per switch| Configures the number of hosts connected to each switch in each subnet of the defined layer. |`2`|
+|host types| Configures the different kinds of devices found in each subnet of the defined layer. GeNESIS supports four different host types: `SERVER`, `CONTROLLER`, `OT_END_DEVICE`, and `IT_END_DEVICE`. You can specify the occurance of each of these types in two different ways: First, by assigning them a specific number, and second, by setting their value to `-1`. If a positive integer is provided, GeNESIS will generate that exact number of devices in each subnet of the defined layer. If a negative integer is provided, GeNESIS will create devices of that type, until each switch of the subnet is connected to exactly `max_host_per_switch` switches.| `None` |
+|structure| `structure_distribution` describes the structure type of the subnets of the defined layer. This parameter is specified as a distribution, e.g., if you provide `{"RING": 1, "LINE":1}`, a generated subnet has a 50:50 chance to be either a ring or a line network. |`None`|
 
 
 **General Layer Layout Properties** define the overall the broader structure of the network:
-- `subnet_descentants` specifies the number of subnets in the next lower layer connected to each subnet of layers defined by this layer definition. For example, in the example topology above, both layer 1 and layer 2 have `"subnet_descentants" : 2`.
-- `repetitions` enables you to configure multiple layers at once. For example, in the example topology above, layer 2 and layer 1 could have the same configuration. Instrad of configuring them individually, you can simply configure them together in a single layer configuration and set `"repetitions": 2`.
+|Parameter|Description|Default Value|
+|:-|:-|:-|
+|subnet descentants| Configures the number of subnets in the next lower layer connected to each subnet of layers defined by this layer definition. For example, in the example topology above, both layer 1 and layer 2 have `"subnet_descentants" : 2`.| `1` |
+|repetitions|Enables you to configure multiple layers at once. For example, in the example topology above, layer 2 and layer 1 could have the same configuration. Instrad of configuring them individually, you can simply configure them together in a single layer configuration and set `"repetitions": 2`.|`1`|
 
 #### Communication
 The communication part of the configuration file specifies iterations, communication profiles, and an upper connection count:
 ```
 "communication": {
-   "iterations": X,
-   "traffic_profile": X,
-   "upper_connection_count": X
+   "iterations": _,
+   "traffic_profile": _,
+   "upper_connection_count": _,
+   "control_traffic_requirement": _,
+   "best_effort_traffic_requirement": _
 }
 ```
 
@@ -164,16 +173,20 @@ These communication profiles are extensions of each other, i.e., converged netwo
    - All controllers and servers may communicate with each other server and controller in the network.
    - All OT/IT devices may communicate with each other OT/IT device along the same branch.
 
-Additionally, you can specify a `"upper_connection_count"` to limit the number of allowed connections in the network.
+|Parameter|Description|Default Value|
+|:-|:-|:-|
+|upper connection count|Configures a limit for the number of allowed connections in the network. A negative number translates to `None`.|`-1`|
+|control traffic requirement|Configures a number of required disjoint paths for services associated with control traffic. This parameter does not alter topology generation but highlights requirement violations. | `None`|
+|best effort traffic requirement|Configures a number of required disjoint paths for services associated with best effort traffic. This parameter does not alter topology generation but highlights requirement violations.|`None`|
 
 #### Security
 The security part of the configuration file specifies iterations, ruleset anomalies, and a stateful rule percentage.
 
 ```
 "security": {
-   "iterations": X,
-   "ruleset_anomaly_count": X,
-   "stateful_rule_percentage": X
+   "iterations": _,
+   "ruleset_anomaly_count": _,
+   "stateful_rule_percentage": _
 }
 ```
 
@@ -181,11 +194,16 @@ As for every generation step, a user can configure GeNESIS to execute the securi
 > Note however, that the security step is applied after every communication generation step. Hence, GeNESIS will generate $topology.iterations * communication.iterations * security.iterations$ different evaluation scenarios.
 
 The other two parameters concern the layout of generated rulesets of routers in the network.
-- `ruleset_anomaly_count` specifies the number of anomalies in rulesets, i.e., the number of intersecting rules of different actions.
 By default, GeNESIS only generates whitelisting rulesets with ACCEPT rules for each allowed connection.
 To create optimizable rulesets for optimization algorithms, GeNESIS allows you to configure an anomaly count.
 If possible, GeNESIS will create that many anomalies in every ruleset.
-- `stateful_rule_percentage` defines the percentage of rules defined with connection state references, e.g., `NEW` or `ESTABLISHED`.
+
+|Parameter|Description|Default Value|
+|:-|:-|:-|
+|ruleset anomaly count| Configures the number of anomalies in rulesets, i.e., the number of intersecting rules of different actions. By default, GeNESIS only generates whitelisting rulesets with ACCEPT rules for each allowed connection. To create optimizable rulesets for optimization algorithms, GeNESIS allows you to configure an anomaly count. If possible, GeNESIS will create that many anomalies in every ruleset.|`0`|
+|stateful rule percentage| Configures the percentage of rules defined with connection state references, e.g., `NEW` or `ESTABLISHED`. | `0` |
+
+
 
 ### GeNESIS Tag
 GeNESIS is able to regenerate the results of a previous run.
@@ -211,7 +229,7 @@ optional arguments:
                         set the output location for generated files.
   -img, --export_graph_images
                         export a .png and a .jpg of the network topology.
-  -zpl, --export_zimpl_parsables
+  -zimpl, --export_zimpl_parsables
                         export the topology and rules as zimpl parsable txt files.
   -omnet, --export_omnet_files
                         export the topology and packet configuration files for omnet++.
@@ -221,15 +239,19 @@ optional arguments:
                         export the all outputs in a single json file.
   -ipt, --export_iptables_files
                         export the scurity configurations as iptables save files.
-  -latag, --use_latex_tag
-                        get the genesis tag in latex parsable form.
+  -ri, --export_resilience_info
+                        export the resilience information of communication pairs as csv.
+  -b {topology,communication}, --early_break {topology,communication}
+                        Breaks the generation process after the specified generation step.
+  -l LABEL, --label LABEL
+                        defines the name of the created output folder, where GeNESIS saves all output files.
 ```
 
 The optional arguments of GeNESIS can be grouped into two different categories:
 1) arguments concerning the input for GeNESIS, and
 2) arguments concerning the output of GeNESIS.
 
-### Input Related Arguments
+### Input-Related Arguments
 Normally, if no arguments are provided, GeNESIS will start a generation cycle using the [example configuration](./hses_genesis/resources/configurations/example_config.json).
 To alter this behavior, you can use the arguments `-j`, `-g`, and `-n` to use different configurations.
 - The `-j` expects the name of a .json configuration inside the [resources folder](./hses_genesis/resources/) or an absolute path to a configuration file in your system.
@@ -237,21 +259,26 @@ To alter this behavior, you can use the arguments `-j`, `-g`, and `-n` to use di
   This tool guides you through the creation process of a new configuration file and is **recommended for new users**.
 - The `-g` expects a GeNESIS tag of a previous run.
 
-### Output Related Arguments
+### Process-Related Arguments
+If you don't need all generation steps for your research, you can limit the generation process to a set of generation steps by breaking early after a specific step with the `-b` argument.
+
+### Output-Related Arguments
 For each generation cycle, GeNESIS creates an output folder in the GeNESIS [output folder](./hses_genesis/output/).
 To alter the root output folder, you can pass an absolute path to GeNESIS with the `-o` argument.
+You can further group your generated evaluation scenarios with the `-l` argument.
+GeNESIS will then save all inputs in correspondingly named folders inside the specified output folder.
 
-By default, GeNESIS creates three different files for each generation cycle:
+By default, GeNESIS creates four different files for each generation cycle:
 1) a `graph.graphml`-file containing the generated network topology and security configurations,
 2) a `packets.csv`-file containing the generated communication, and
 3) a `.genesis-tag`-file containing the GeNESIS tag of the related run of the output.
+4) a `metadata.json`-file containing metadata of the generated network topology and generated communication.
 
-The arguments `-img`, `-zpl`, `-omnet`, `-ns3`, `-yang`, and `-ipt` extend the GeNESIS output by specific files:
+The arguments `-img`, `-zipml`, `-omnet`, `-ns3`, `-yang`, `-ipt`, `-ri` extend the GeNESIS output by specific files:
 - With the `-img` argument, GeNESIS adds a visual representation of the generated network topology as .png and .jpg.
 - With the `-zpl` argument, GeNESIS adds a file containing the generated topology and security configurations in a [zimpl](https://zimpl.zib.de)-parsable format.
 - With the `-omnet` argument, GeNESIS adds a folder containing all nescessary files to simulate the generated network traffic in [OMNeT++.](https://omnetpp.org)
 - With the `-ns3` argument, GeNESIS adds a file to simulate the generated network traffic in [ns-3.](https://www.nsnam.org)
 - With the `-yang` argument, GeNESIS adds a ietf format conform yang.json file describing the generated network topology.
 - With the `-ipt` argument, GeNESIS adds a [iptables](https://www.netfilter.org/projects/iptables/index.html)-save format conform file for each generated firewall.
-- With the `-latag` argument, GeNESIS depicts the GeNESIS tag in an alternate, latex-parsable and more readable format.
-  Due to missing compression, the latag is usually longer than the default tag.
+- With the `-ri` argument, GeNESIS adds three different csv files containing different resilience-related information of the generated topologies.
