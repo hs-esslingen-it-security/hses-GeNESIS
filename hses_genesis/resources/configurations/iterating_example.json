@@ -1,0 +1,57 @@
+{
+    "topology": {
+        "iterations" : 1,
+        "layer_definitions" : [
+            {
+                "switch_count": 2,
+                "max_hosts_per_switch": 2,
+                "host_types" : {
+                    "SERVER" : 2,
+                    "CONTROLLER" : 2,
+                    "IT_END_DEVICE" : -1
+                },
+                "structure": {
+                    "LINE": 1
+                }
+            },
+            {
+                "per_upper_layer" : {
+                    "start" : 2,
+                    "end" : 30,
+                    "step_size" : 2
+                },
+                "switch_count": {
+                    "start" : 2,
+                    "end" : 16,
+                    "step_size" : 2
+                },
+                "max_hosts_per_switch": {
+                    "start" : 2,
+                    "end" : 32,
+                    "step_size" : 2
+                },
+                "host_types" : {
+                    "CONTROLLER" : 2,
+                    "IT_END_DEVICE" : -1,
+                    "OT_END_DEVICE" : -1
+                },
+                "structure": {
+                    "LINE": 1
+                },
+                "repetitions" : {
+                    "start" : 1,
+                    "end" : 4,
+                    "step_size" : 1
+                }
+            }
+        ]
+    },
+    "communication": {
+        "traffic_profile": "DISTRIBUTED_CONTROL",
+        "upper_connection_bound": -1
+    },
+    "security" : {
+        "anomaly_count": 0,
+        "stateful_percentage" : 0
+    }
+}

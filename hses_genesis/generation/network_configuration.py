@@ -1,8 +1,11 @@
 from collections import OrderedDict
 from ipaddress import ip_address
 from random import Random
+from typing import DefaultDict
+
+from networkx import Graph, shortest_simple_paths
 from hses_genesis.utils.constants import FULL_RANGES, PROTOCOLS, WILDCARD
-from hses_genesis.utils.enum_objects import EPacketDecision, EParameterType, EState
+from hses_genesis.utils.enum_objects import EDeviceRole, EPacketDecision, EParameterType, EState
 
 class NetworkConfigurationGenerator():
     def __init__(self, seed) -> None:
@@ -58,6 +61,37 @@ class NetworkConfigurationGenerator():
         states = [state.value for state in list(raw_rule[5])]
         action = [raw_rule[6].value]
         return ip_addresses + protocols + ports + states + action
+
+    def get_affected_routers(self, G : Graph, subnet_graph : Graph, ruleset_connections : list[tuple]):
+        def is_router_between_hosts(router_subnets, path):
+            return all(subnet in path for subnet in router_subnets)
+
+        routers = [(router, r_data['subnet']) for router, r_data in G.nodes(data=True) if r_data['role'] == EDeviceRole.ROUTER]
+        router_connections = DefaultDict(list)
+
+        for source, target, p, sport, dport in ruleset_connections:
+            path_gen, calculated_paths = shortest_simple_paths(subnet_graph, G.nodes[source]['subnet'][0], G.nodes[target]['subnet'][0]), list()
+            
+            for router, router_subnets in routers:
+                matches_calculated = any(is_router_between_hosts(router_subnets, path) for path in calculated_paths)
+                if matches_calculated:
+                    router_connections[router].append((G.nodes[source]['ip'], G.nodes[target]['ip'], p, sport, dport))
+                    continue
+
+                else:
+                    next_path = next(path_gen, None)
+                    while next_path != None:
+                        calculated_paths.append(next_path)
+
+                        if is_router_between_hosts(router_subnets, next_path):
+                            router_connections[router].append((G.nodes[source]['ip'], G.nodes[target]['ip'], p, sport, dport))
+                            break
+
+                        next_path = next(path_gen, None)
+        
+        return router_connections
+
+
 
     def generate_ruleset(self, communication_relations, anomaly_count : int, stateful_percentage : int):
         ruleset = []

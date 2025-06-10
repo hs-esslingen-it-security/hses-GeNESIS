@@ -1,5 +1,6 @@
 from enum import Enum
 from types import SimpleNamespace
+
 from networkx import Graph, simple_cycles
 
 class EGenerationSteps(Enum):
@@ -99,23 +100,17 @@ class EState(Enum):
     
 
 class EService(Enum):
-    # bei high: tolerated_packet_loss - 1
     SSH = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [22], 'packet_size_range' : [512,1500], 'priority' : 1, 'dei' : 0})
     HTTP = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [80], 'packet_size_range' : [64,1500], 'priority' : 1, 'dei' : 0})
     HTTPS = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [443], 'packet_size_range' : [64,1500], 'priority' : 1, 'dei' : 0})
     NETCONF = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [830], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
     IP_Camera = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [554], 'packet_size_range' : [1000,1500], 'priority' : 1, 'dei' : 0}) # rstp uses mostly tcp --> no signature protocol number in ip header
     
-    # bei high: semaless_paths +1
     OPC_UA = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [4840], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
     ModbusTCP = SimpleNamespace(**{'protocols' : ['tcp'], 'ports' : [502], 'packet_size_range' : [64,800], 'priority' : 1, 'dei' : 0})
     EthernetIP = SimpleNamespace(**{'protocols' : ['tcp', 'udp'], 'ports' : [44818, 2222], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
     EtherCAT = SimpleNamespace(**{'protocols' : ['udp'], 'ports' : [34980], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
     ProfiNet = SimpleNamespace(**{'protocols' : ['udp'], 'ports' : [34962,34963,34964,53247], 'packet_size_range' : [64,100], 'priority' : 1, 'dei' : 0})
-
-    # CB braucht fixe Pfade! --> d.h. es müssen 2 disjunkte Pfade berechent werden
-
-    # TODO: implementierung von PRIORITY_PROFILES: None, Realistic, High; Manipulieren seamless_paths und tolerated_packet_loss; Für seamless paths: Ausgeben der benltigten parallelen pfade; für tolerated_packet_loss entweder CB oder RSTP.
 
     def __str__(self) -> str:
         return self.name
@@ -290,3 +285,16 @@ class EParameterType(Enum):
             return EParameterType.PROTOCOL
         else:
             return EParameterType.NUMBER
+        
+
+class EResilienceProtocol(Enum):
+    RSTP = 0
+    FRER = 1
+
+    @staticmethod
+    def from_str(value : str):
+        for v in EResilienceProtocol:
+            if v.name.lower() == value.lower():
+                return v
+            
+        raise Exception(f'No parameter key supported matching {value}. Use one of {list(EResilienceProtocol.__members__.values())}.')

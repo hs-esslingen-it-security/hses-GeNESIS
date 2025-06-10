@@ -40,10 +40,12 @@
         ]
     },
     "communication": {
+        "iterations" : 1,
         "traffic_profile": "CONVERGED_NETWORKS",
         "upper_connection_bound": -1
     },
     "security" : {
+        "iterations" : 1,
         "anomaly_count": 0,
         "stateful_percentage" : 0
     }

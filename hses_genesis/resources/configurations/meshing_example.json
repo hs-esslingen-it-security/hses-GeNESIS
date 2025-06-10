@@ -1,48 +1,52 @@
 {
     "topology": {
         "iterations" : 1,
+        "meshing" : -1,
         "layer_definitions" : [
             {
-                "switch_count": 3,
+                "switch_count": 5,
                 "max_hosts_per_switch": 2,
-                "structure": {
-                    "LINE": 1
-                },
                 "host_types" : {
                     "SERVER" : 2,
+                    "CONTROLLER" : 2,
                     "IT_END_DEVICE" : -1
-                }
+                },
+                "structure": {
+                    "MESH": 1
+                },
+                "subnet_descendants" : 1
             },
             {
-                "switch_count": 13,
-                "max_hosts_per_switch": 1,
-                "structure": {
-                    "STAR": 1
-                },
+                "switch_count": 6,
+                "max_hosts_per_switch": 2,
                 "host_types" : {
                     "CONTROLLER" : 2,
-                    "IT_END_DEVICE": -1,
-                    "OT_END_DEVICE": -1
+                    "IT_END_DEVICE" : -1,
+                    "OT_END_DEVICE" : -1
                 },
-                "subnet_descendants" : 6
+                "meshing" : 3,
+                "structure": {
+                    "MESH": 1
+                },
+                "subnet_descendants" : 1
             },
             {
                 "switch_count": 2,
                 "max_hosts_per_switch": 2,
                 "host_types" : {
                     "CONTROLLER" : 2,
-                    "OT_END_DEVICE": -1,
-                    "IT_END_DEVICE": -1
+                    "IT_END_DEVICE" : -1,
+                    "OT_END_DEVICE" : -1
                 },
                 "structure": {
                     "RING": 1
-                },
-                "repetitions" : 2
+                }
             }
         ]
     },
     "communication": {
-        "traffic_profile": "STRICT_ISOLATION",
+        "traffic_profile": "DISTRIBUTED_CONTROL",
+        "redundant_paths" : 2,
         "upper_connection_bound": -1
     },
     "security" : {

@@ -145,7 +145,7 @@ class TopologyGenerator():
             raise Exception('InvalidConfigurationException: Layer instance without switches generated. Most likely your configuration file does not specify a switch_count in the last layer_definition.')
         
         if (len(possible_device_owners) * host_count) / host_connectivity < sum([max(value.current, 0) for value in host_types.values()]):
-            raise Exception(f'InvalidConfigurationException: Your configuration of fixed devices exceeds the available space ({len(possible_device_owners)} * {host_count}) / {host_connectivity} < {sum([max(value, 0) for value in host_types.values()])}.')
+            raise Exception(f'InvalidConfigurationException: Your configuration of fixed devices exceeds the available space ({len(possible_device_owners)} * {host_count}) / {host_connectivity} < {sum([max(value.current, 0) for value in host_types.values()])}.')
         
         fixed_devices = [device for device_type, device_count in host_types.items() if device_count.current > 0 for device in [self.generate_device(device_role=device_type, subnets=[str(subnet)], layer_id=layer_id, branch_id=branch_id) for _ in range(device_count.current)]]
 
@@ -249,18 +249,21 @@ class TopologyGenerator():
                 G.add_edges_from([(src_net, router),(router, dst_net)])
         return G
 
-    def generate_network_topology_graph(self, layer_definitions : list[LayerDefinition], subnets : list[IPv4Network], default_meshing = 3, deault_subnet_connectivity = 1, default_host_connectivity = 1):
+    def generate_network_topology_graph(self, layer_definitions : list[LayerDefinition], subnets : list[IPv4Network], default_meshing = 3, deault_subnet_connectivity = 1, default_host_connectivity = 1, return_subnet_graph = False):
         for subnet in subnets:
             self.ip_iterators[str(subnet)] = subnet.hosts()
 
-        subnet_graph = self.generate_abstracted_graph(layer_definitions=layer_definitions, subnets = iter(subnets))
+        subnet_graph : Graph = self.generate_abstracted_graph(layer_definitions=layer_definitions, subnets = iter(subnets))
         subnets = list(subnet_graph.nodes(data=True))
-        G = self.insert_routers_at_network_borders(subnet_graph.copy(), subnet_connectivity=deault_subnet_connectivity)
+        G : Graph = self.insert_routers_at_network_borders(subnet_graph.copy(), subnet_connectivity=deault_subnet_connectivity)
 
         for subnet, data in subnets:
             G.remove_node(subnet)
             routers = [(router, data) for router, data in G.nodes(data=True) if str(subnet) in data.get('subnet', list())]
             subgraph = self.replace_network_nodes_by_switches(subnet=subnet, switch_count=data['switch_count'], subnet_structure=data['structure'], routers=routers, layer_id=data['layer'], branch_id=data['branch'], meshing_degree=default_meshing)
             subgraph = self.add_hosts(G=subgraph, subnet=subnet, host_connectivity=default_host_connectivity, layer_id=data['layer'], branch_id=data['branch'], host_count=data['host_count'], host_types=data['host_types'], subnet_structure=data['structure'])
-            G = compose(G, subgraph)
+            G : Graph = compose(G, subgraph)
+
+        if return_subnet_graph:
+            return G, subnet_graph
         return G

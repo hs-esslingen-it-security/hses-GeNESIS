@@ -245,6 +245,9 @@ optional arguments:
                         Breaks the generation process after the specified generation step.
   -l LABEL, --label LABEL
                         defines the name of the created output folder, where GeNESIS saves all output files.
+  -rp {rstp,frer}, --resilience_protocol {rstp,frer}
+                        Configures the resilience protocol used in generated simulation files. Default is
+                        RSTP.
 ```
 
 The optional arguments of GeNESIS can be grouped into two different categories:
@@ -278,6 +281,7 @@ The arguments `-img`, `-zipml`, `-omnet`, `-ns3`, `-yang`, `-ipt`, `-ri` extend 
 - With the `-img` argument, GeNESIS adds a visual representation of the generated network topology as .png and .jpg.
 - With the `-zpl` argument, GeNESIS adds a file containing the generated topology and security configurations in a [zimpl](https://zimpl.zib.de)-parsable format.
 - With the `-omnet` argument, GeNESIS adds a folder containing all nescessary files to simulate the generated network traffic in [OMNeT++.](https://omnetpp.org)
+  - The `-rp` argument modifies the used resilience protocol in these files.
 - With the `-ns3` argument, GeNESIS adds a file to simulate the generated network traffic in [ns-3.](https://www.nsnam.org)
 - With the `-yang` argument, GeNESIS adds a ietf format conform yang.json file describing the generated network topology.
 - With the `-ipt` argument, GeNESIS adds a [iptables](https://www.netfilter.org/projects/iptables/index.html)-save format conform file for each generated firewall.

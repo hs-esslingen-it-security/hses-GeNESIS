@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from itertools import product
+from itertools import groupby
 from json import dump, load
 from random import randint
 from statistics import median
 from typing import DefaultDict, Optional
-from networkx import Graph, contracted_nodes, neighbors, periphery, relabel_nodes
-from pandas import DataFrame
+from networkx import Graph, neighbors, periphery
 from re import match
+from hses_genesis.parsing.topology import get_subnet_graph
 
 from hses_genesis.utils.constants import BEST_EFFORT_TRAFFIC_REQUIREMENT_KEY, BIG_SEPARATOR, COMMUNICATION_KEY, CONTROL_TRAFFIC_REQUIREMENT_KEY, GENESIS_PACKAGE_NAME, HOST_CONNECTIVITY_KEY, HOST_TYPES_KEY, ITERATION_SEPARATOR, ITERATIONS_KEY, LAYER_DEFINITIONS_KEY, MAX_HOSTS_PER_SWITCH_KEY, MEDIUM_SEPARATOR, SUBNET_CONNECTIVITY_KEY, SUBNET_DESCENDANTS_KEY, REPETITIONS_KEY, ANOMALY_COUNT_KEY, SECURITY_KEY, SMALL_SEPARATOR, STATEFUL_PERCENTAGE_KEY, STRUCTURE_KEY, SWITCH_COUNT_KEY, TAG_ENCAPSULATOR, TOPOLOGY_KEY, TRAFFIC_PROFILE_KEY, UNSET_INDICATOR, UPPER_CONNECTION_BOUND_KEY, MESHING_KEY
 from hses_genesis.utils.enum_objects import EDeviceRole, ESubnetTopologyStructure, ETrafficProfile, ENetworkLayer
@@ -98,6 +98,16 @@ class IterativeParameterValue(AGenesisTaggable):
 
         if self.synced:
             if len(self.fixed_values) > 1:
+                if len(self.fixed_values):
+                    compressed_groups = list()
+                    for key, group in groupby(self.fixed_values):
+                        group_size = sum(1 for _ in group)
+                        if group_size > 2:
+                            compressed_groups.append(str(key) + '{' + str(group_size) +'}')
+                        else:
+                            compressed_groups.append(ITERATION_SEPARATOR.join(([str(key)] * group_size)))
+                            
+                    return f"[{ITERATION_SEPARATOR.join(compressed_groups)}]"
                 return f"[{ITERATION_SEPARATOR.join(map(str, self.fixed_values))}]"
             else:
                 return str(self.start)
@@ -141,9 +151,14 @@ class IterativeParameterValue(AGenesisTaggable):
 
     @staticmethod
     def from_str(value : str):
-        is_synched = match(r'\[(\d+\.?)+\]', value)
+        is_synched = match(r'\[(\d+(\{\d+\})?\.?)+\]', value)
         if is_synched:
-            return IterativeParameterValue(values=list(map(int, value[1:-1].split(ITERATION_SEPARATOR))), synced=True)
+            values = []
+            for v in value[1:-1].split(ITERATION_SEPARATOR):
+                value_dict = match(r'(?:(?P<value>\d+)(?:\{(?P<multiplier>\d+)\})?)', v).groupdict()
+                multiplier = value_dict.get('multiplier', None)
+                values += [int(value_dict['value'])] * (1 if not multiplier else int(multiplier))
+            return IterativeParameterValue(values=values, synced=True)
         
         return IterativeParameterValue(values=list(map(int, value.split(ITERATION_SEPARATOR))))
     
@@ -195,7 +210,6 @@ class LayerDefinition(AGenesisTaggable):
 
     @staticmethod
     def from_topology(G : Graph, layer_subnets : list[str], subnet_descendants = 1, layer_classification = ENetworkLayer.AGGREGATED_CONTROL):
-        
         switch_count = []
         hosts_per_switch = []
         meshing_degrees = []
@@ -385,50 +399,6 @@ class TopologyGenerationConfig(AGenesisTaggable):
 
     @staticmethod
     def from_topology(G : Graph, iterations = 1):
-        def get_subnet_graph(G : Graph, inplace = False):
-
-            def remove_routers(G : Graph, inplace = False):
-                g_copy = G if inplace else G.copy()
-                routers = [router for router, data in g_copy.nodes(data=True) if data['role'] == EDeviceRole.ROUTER]
-                for router in routers:
-                    router_neighbors = list(neighbors(g_copy, router))
-                    g_copy.remove_node(router)
-
-                    for src, dst in product(router_neighbors, router_neighbors):
-                        if src == dst:
-                            continue
-                        g_copy.add_edge(src, dst)
-                return g_copy
-
-            def contract_nodes(G : Graph, grouped_data_df, relabel_to_subnet = False, inplace = False):
-                g_copy = G if inplace else G.copy()
-                for subnet, values in grouped_data_df:
-                    node_informations = values.to_dict(orient='records')
-                    if len(node_informations) == 0:
-                        continue
-
-                    node_to_keep = node_informations[0]['node_name']
-                    for node in node_informations[1:]:
-                        g_copy = contracted_nodes(g_copy, node_to_keep, node['node_name'], self_loops=False)
-
-                    if relabel_to_subnet:
-                        g_copy = relabel_nodes(g_copy, {node_to_keep : subnet})
-                return g_copy
-
-            subnet_compressed_topology = G if inplace else G.copy()
-            node_data = subnet_compressed_topology.nodes(data=True)
-
-            non_router_data_df = DataFrame([{'node_name' : node} | data for node, data in node_data if data['role'] != EDeviceRole.ROUTER]).explode('subnet')
-            grouped_non_router_data_df = non_router_data_df.groupby('subnet')
-
-            subnet_compressed_topology = contract_nodes(subnet_compressed_topology, grouped_non_router_data_df, True)
-
-            router_data_df = DataFrame([{'node_name' : node} | data for node, data in node_data if data['role'] == EDeviceRole.ROUTER])
-            router_data_df['subnet'] = router_data_df['subnet'].apply(sorted).apply(tuple)
-            grouped_router_data_df = router_data_df.groupby('subnet')
-
-            return remove_routers(contract_nodes(subnet_compressed_topology, grouped_router_data_df))
-        
         layer_definitions, previous_layer_width, compressed_graph = list(), 1, get_subnet_graph(G)
         while len(compressed_graph.nodes) > 0:
             longest_distance_subnets = periphery(compressed_graph)

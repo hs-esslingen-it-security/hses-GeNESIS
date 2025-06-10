@@ -1,7 +1,7 @@
 {
     "topology": {
-        "iterations" : 10,
-        "layer_descriptions" : [
+        "iterations" : 1,
+        "layer_definitions" : [
             {
                 "switch_count": 2,
                 "max_hosts_per_switch": 2,
@@ -10,23 +10,35 @@
                     "CONTROLLER" : 2,
                     "IT_END_DEVICE" : -1
                 },
-                "structure_distribution": {
+                "structure": {
                     "LINE": 1
                 }
             },
             {
-                "per_upper_layer" : [2,30,2],
-                "switch_count": [2,16,2],
-                "max_hosts_per_switch": [2,32,2],
+                "per_upper_layer" : {
+                    "values" : [2,4,6],
+                    "synced" : true
+                },
+                "switch_count": {
+                    "values" : [2,4,6],
+                    "synced" : true
+                },
+                "max_hosts_per_switch": {
+                    "values" : [2,4,6],
+                    "synced" : true
+                },
                 "host_types" : {
                     "CONTROLLER" : 2,
                     "IT_END_DEVICE" : -1,
                     "OT_END_DEVICE" : -1
                 },
-                "structure_distribution": {
+                "structure": {
                     "LINE": 1
                 },
-                "repetitions" : [1,4,1]
+                "repetitions" : {
+                    "values" : [1,2,3],
+                    "synced" : true
+                }
             }
         ]
     },
@@ -35,7 +47,7 @@
         "upper_connection_bound": -1
     },
     "security" : {
-        "ruleset_anomaly_count": 0,
-        "stateful_rule_percentage" : 0
+        "anomaly_count": 0,
+        "stateful_percentage" : 0
     }
 }

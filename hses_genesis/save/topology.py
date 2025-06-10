@@ -1,5 +1,6 @@
 from ipaddress import ip_address, ip_network
 from json import dumps
+from random import Random
 from typing import Optional
 from warnings import warn
 from matplotlib.pyplot import close, savefig
@@ -7,7 +8,7 @@ from networkx import Graph, draw, write_graphml, spring_layout
 from os.path import join
 
 from hses_genesis.utils.constants import ACL_RULE_COUNT, NS3_FOLDER, OMNET_FOLDER, ZIMPL_FOLDER
-from hses_genesis.utils.enum_objects import EDeviceRole, EParameterKey
+from hses_genesis.utils.enum_objects import EDeviceRole, EParameterKey, EResilienceProtocol
 from hses_genesis.utils.functions import load_resource
 
 def prepare_topology(G):
@@ -16,7 +17,10 @@ def prepare_topology(G):
             if 'services' in data.keys():
                 g_copy.nodes[n]['services'] = ','.join([service.name for service in data['services']])
 
-            for key, joiner in [['subnet', ','], ['ip', ','], ['ruleset', '\n'], ['default_action', None], ['role', None]]:
+            if 'host_types' in data.keys():
+                g_copy.nodes[n]['host_types'] = ','.join(str(value) for _, value in data['host_types'].items())
+
+            for key, joiner in [['subnet', ','], ['ip', ','], ['ruleset', '\n'], ['default_action', None], ['role', None], ['structure', None]]:
                 data = g_copy.nodes[n]
                 if key in data.keys():
                     value = data[key]
@@ -27,7 +31,7 @@ def prepare_topology(G):
                             g_copy.nodes[n][key] = data[key].name
         return g_copy
 
-def to_ietf(G : Graph, location, generated_packets : Optional[dict] = None):
+def to_ietf(random : Random, G : Graph, location, generated_packets : Optional[dict] = None):
     def prepare_packets(G : Graph, packets : Optional[dict] = None):
         if not packets:
             return []
@@ -54,7 +58,7 @@ def to_ietf(G : Graph, location, generated_packets : Optional[dict] = None):
 
         node_data = G.nodes[dev]
 
-        service_values = [{'name' : service.name, 'protocols' : service.value.protocols, 'ports' : service.value.protocols} for service in node_data['services']]
+        service_values = [{'name' : service.name, 'protocols' : service.value.protocols, 'ports' : random.choice(service.value.ports)} for service in node_data['services']]
 
         ietf_node = {
             'node_id' : dev.lower(),
@@ -131,7 +135,7 @@ def to_zimpl_parsable(G, location):
                 for dst_ip in dst_ips:
                     ip_edges_file.write(f'{int(ip_address(src_ip))},{int(ip_address(dst_ip))},1\n')
 
-def to_omnet_ned(G : Graph, location):
+def to_omnet_ned(G : Graph, location, protocol : EResilienceProtocol):
     submodules = ['\tconfigurator: Ipv4NetworkConfigurator { }\n', '\tvisualizer: IntegratedCanvasVisualizer { }\n']
     interfaces = []
     for node, data in G.nodes(data=True):
@@ -139,9 +143,9 @@ def to_omnet_ned(G : Graph, location):
         if data['role'] == EDeviceRole.ROUTER:
             role = 'Router'
         elif data['role'] == EDeviceRole.SWITCH:
-            role = 'EthernetSwitch'
+            role = 'EthernetSwitch' if protocol == EResilienceProtocol.RSTP else 'TsnSwitch'
         else:
-            role = 'StandardHost'
+            role = 'StandardHost' if protocol == EResilienceProtocol.RSTP else 'TsnDevice'
             extension = '{' + f'@display("i=device/pc");' + '}'
 
         submodules.append(f'\t\t{node}: {role} {extension}\n')
@@ -156,7 +160,7 @@ def to_omnet_ned(G : Graph, location):
             }
 
             if data['role'] == EDeviceRole.ROUTER:
-                target_hosts = [n for n, d in G.nodes(data=True) if n != node and d['subnet'] == subnet and d['role'] in EDeviceRole.hosts()]
+                target_hosts = [n for n, d in G.nodes(data=True) if d['role'] in EDeviceRole.hosts() and subnet in d['subnet']]
                 if len(target_hosts) == 0:
                     warn(f'Invalid Configuration Exception: Cannot determine interface target for {node} in interface {subnet} ({[n for n, d in G.nodes(data=True) if d["subnet"] == subnet]}). You probably defined a layer without any end devices.')
                     continue
@@ -373,10 +377,12 @@ def to_ns3_cc(G : Graph, location, generated_packets : Optional[dict]):
                     if func.__name__ in line:
                         output_file.writelines(map(lambda x: f'\t{x}\n', func(G, generated_packets)))
 
-def to_image(G, location, seed=None):
+def to_image(G, location, seed=None, file_name = 'graph'):
     g_copy = G.copy()
     color_map, size_map, border_map, shape_map = [], [], [], []
-    for n in g_copy.nodes:
+    for n, d in g_copy.nodes(data=True):
+        if 'role' not in d:
+            continue
         role = EDeviceRole.from_device_id(n)
 
         if role == EDeviceRole.PORT:
@@ -406,8 +412,15 @@ def to_image(G, location, seed=None):
             shape_map.append('o')
             size_map.append(100)
 
-    draw(g_copy, node_color=color_map, node_size=size_map, edgecolors=border_map, with_labels=False, pos=spring_layout(g_copy, seed=seed))
-    savefig(join(location, f'graph_unlabeled.png'), dpi=300)
-    draw(g_copy, node_color=color_map, node_size=size_map, edgecolors=border_map, with_labels=True, pos=spring_layout(g_copy, seed=seed))
-    savefig(join(location, f'graph_labeled.png'), dpi=300)
-    close()
+    if len(color_map) > 0:
+        draw(g_copy, node_color=color_map, node_size=size_map, edgecolors=border_map, with_labels=False, pos=spring_layout(g_copy, seed=seed))
+        savefig(join(location, f'{file_name}_unlabeled.png'), dpi=300)
+        draw(g_copy, node_color=color_map, node_size=size_map, edgecolors=border_map, with_labels=True, pos=spring_layout(g_copy, seed=seed))
+        savefig(join(location, f'{file_name}_labeled.png'), dpi=300)
+        close()
+    else:
+        draw(g_copy, with_labels=False, pos=spring_layout(g_copy, seed=seed))
+        savefig(join(location, f'{file_name}_unlabeled.png'), dpi=300)
+        draw(g_copy, with_labels=True, pos=spring_layout(g_copy, seed=seed))
+        savefig(join(location, f'{file_name}_labeled.png'), dpi=300)
+        close()

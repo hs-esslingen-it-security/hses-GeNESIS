@@ -10,7 +10,7 @@ from hses_genesis.generation.topology import TopologyGenerator, calculate_subnet
 from hses_genesis.parsing.configuration import GenerationConfig
 from hses_genesis.setup.output_location import setup_base_location, setup_run_location
 from hses_genesis.utils.constants import GRAPH_FOLDER, TERMINAL_WIDTH
-from hses_genesis.utils.enum_objects import EDeviceRole
+from hses_genesis.utils.enum_objects import EDeviceRole, EResilienceProtocol
 from hses_genesis.save import topology as topology
 from hses_genesis.save import packets as packets
 from hses_genesis.save import rulesets as rulesets
@@ -32,19 +32,20 @@ def user_choice(prompt, choices, default = None):
         print('No valid option chosen. Please try again.')
 
 parser = ArgumentParser()
-parser.add_argument('-j', '--json', help='pass the name or absolute path of the configuration file to use.', default=None)
-parser.add_argument('-g', '--genesis_tag', help='pass the GeNESIS-TAG of a previous run.', default=None)
-parser.add_argument('-n', '--new_configuration', help='start the Interactive GeNESIS Configuration Generator to create a new configuration.', action='store_true')
-parser.add_argument('-o', '--output_location', help='set the output location for generated files.', default=join(dirname(abspath(__file__)), 'output'))
-parser.add_argument('-img', '--export_graph_images', help='export a .png and a .jpg of the network topology.', action='store_true')
-parser.add_argument('-zimpl', '--export_zimpl_parsables', help='export the topology and rules as zimpl parsable txt files.', action='store_true')
-parser.add_argument('-omnet', '--export_omnet_files', help='export the topology and packet configuration files for omnet++.', action='store_true')
-parser.add_argument('-ns3', '--export_ns3_files', help='export the topology and packet configuration files for ns3.', action='store_true')
-parser.add_argument('-yang', '--export_yang_files', help='export the all outputs in a single json file.', action='store_true')
-parser.add_argument('-ipt', '--export_iptables_files', help='export the security configurations as iptables save files.', action='store_true')
-parser.add_argument('-ri', '--export_resilience_info', help='export the resilience information of communication pairs as csv.', action='store_true')
+parser.add_argument('-j', '--json', help='Pass the name or absolute path of the configuration file to use.', default=None)
+parser.add_argument('-g', '--genesis_tag', help='Pass the GeNESIS-TAG of a previous run.', default=None)
+parser.add_argument('-n', '--new_configuration', help='Start the Interactive GeNESIS Configuration Generator to create a new configuration.', action='store_true')
+parser.add_argument('-o', '--output_location', help='Set the output location for generated files.', default=join(dirname(abspath(__file__)), 'output'))
+parser.add_argument('-img', '--export_graph_images', help='Export a .png and a .jpg of the network topology.', action='store_true')
+parser.add_argument('-zimpl', '--export_zimpl_parsables', help='Export the topology and rules as zimpl parsable txt files.', action='store_true')
+parser.add_argument('-omnet', '--export_omnet_files', help='Export the topology and packet configuration files for omnet++.', action='store_true')
+parser.add_argument('-ns3', '--export_ns3_files', help='Export the topology and packet configuration files for ns3.', action='store_true')
+parser.add_argument('-yang', '--export_yang_files', help='Export the all outputs in a single json file.', action='store_true')
+parser.add_argument('-ipt', '--export_iptables_files', help='Export the security configurations as iptables save files.', action='store_true')
+parser.add_argument('-ri', '--export_resilience_info', help='Export the resilience information of communication pairs as csv.', action='store_true')
 parser.add_argument('-b', '--early_break', help='Breaks the generation process after the specified generation step.', choices=['topology', 'communication'])
-parser.add_argument('-l', '--label', help='defines the name of the created output folder, where GeNESIS saves all output files.')
+parser.add_argument('-l', '--label', help='Defines the name of the created output folder, where GeNESIS saves all output files.')
+parser.add_argument('-rp', '--resilience_protocol', help='Configures the resilience protocol used in generated simulation files. Default is RSTP.', choices=['rstp', 'frer'], default='rstp')
 
 args = parser.parse_args()
 
@@ -55,15 +56,18 @@ def perform_generation_cycle(base_location : str, config : GenerationConfig):
         with open(join(run_location, 'metadata.json'), 'w') as file:
             file.write(dumps(metadata, indent=4))
     
-    def save_generated(run_location : str, run_label : str, generated_graph : Graph, generated_packets : Optional[dict] = None, router_ruleset_map : Optional[dict] = None, sampled_connections : Optional[list] = None):
+    def save_generated(run_location : str, run_label : str, generated_graph : Graph, subnet_graph : Graph, generated_packets : Optional[dict] = None, router_ruleset_map : Optional[dict] = None, sampled_connections : Optional[list] = None):
         topology.to_graphml(generated_graph, join(run_location, GRAPH_FOLDER))
+        topology.to_graphml(subnet_graph, join(run_location, GRAPH_FOLDER), file_name='subnet_graph')
 
         if args.export_graph_images:
             topology.to_image(generated_graph, join(run_location, GRAPH_FOLDER), seed=config.seed_config.topology_seed.current)
+            topology.to_image(subnet_graph, join(run_location, GRAPH_FOLDER), seed=config.seed_config.topology_seed.current, file_name='subnet_graph')
         if args.export_yang_files:
-            topology.to_ietf(generated_graph, join(run_location, GRAPH_FOLDER), generated_packets)
+            topology.to_ietf(topology_generator.random, generated_graph, join(run_location, GRAPH_FOLDER), generated_packets)
         if args.export_omnet_files:
-            topology.to_omnet_ned(generated_graph, run_location)
+            resilience_protocol = EResilienceProtocol.from_str(args.resilience_protocol)
+            topology.to_omnet_ned(generated_graph, run_location, resilience_protocol)
         if args.export_ns3_files:
             topology.to_ns3_cc(generated_graph, run_location, generated_packets)
         if args.export_zimpl_parsables:
@@ -72,7 +76,21 @@ def perform_generation_cycle(base_location : str, config : GenerationConfig):
         if generated_packets:
             packets.to_csv(run_location, generated_packets)
             if args.export_omnet_files:
-                packets.to_omnet_ini(run_location, generated_packets)
+                streams = [stream for streams in generated_packets.values() for stream in streams]
+                stream_paths = dict()
+                if resilience_protocol == EResilienceProtocol.FRER:
+                    for stream in streams:
+                        source = stream['SourceName']
+                        target = stream['DestinationName']
+                        if (source, target) in stream_paths:
+                            continue
+
+                        if (target, source) in stream_paths: # for efficiency flip paths
+                            stream_paths[(source, target)] = [path[::-1] for path in stream_paths[(target, source)]]
+                        else:
+                            subgraph = generated_graph.subgraph([n for n, data in G.nodes(data=True) if n in [source, target] or data['role'] in [EDeviceRole.SWITCH, EDeviceRole.ROUTER]])
+                            stream_paths[(source, target)] = list(shortest_simple_paths(subgraph, source, target))
+                packets.to_omnet_ini(run_location, streams, stream_paths, resilience_protocol)
 
         if sampled_connections and args.export_resilience_info:
             communication_pairs = set([(s, d) for (s, d, _) in sampled_connections])
@@ -99,11 +117,12 @@ def perform_generation_cycle(base_location : str, config : GenerationConfig):
     topology_generator = TopologyGenerator(config.seed_config.topology_seed.current)
     layer_definitions = [clone for layer_definition in config.topology_config.layer_definitions for clone in [copy(layer_definition) for _ in range(layer_definition.repetitions.current)]]
     available_subnets = calculate_subnets(layer_definitions)
-    G = topology_generator.generate_network_topology_graph(layer_definitions=layer_definitions,
+    G, subnet_graph = topology_generator.generate_network_topology_graph(layer_definitions=layer_definitions,
                                                            subnets=available_subnets,
                                                            default_meshing=config.topology_config.meshing_degree.current,
                                                            default_host_connectivity=config.topology_config.host_connectivity.current,
-                                                           deault_subnet_connectivity=config.topology_config.subnet_connectivity.current)
+                                                           deault_subnet_connectivity=config.topology_config.subnet_connectivity.current,
+                                                           return_subnet_graph=True)
     print_information('GRAPH INFORMATION', get_graph_information(G))
 
     run_label = '-'.join(map(lambda x: str(x), [config.seed_config.topology_seed.current, config.seed_config.communication_seed.current, config.seed_config.security_seed.current]))
@@ -117,7 +136,7 @@ def perform_generation_cycle(base_location : str, config : GenerationConfig):
     run_label = basename(run_location)
 
     if args.early_break == 'topology':
-        save_generated(run_location=run_location, run_label=run_label, generated_graph=G)
+        save_generated(run_location=run_location, run_label=run_label, generated_graph=G, subnet_graph=subnet_graph)
         return
 
     print(f'Start Generation Step "communication"')
@@ -160,27 +179,19 @@ def perform_generation_cycle(base_location : str, config : GenerationConfig):
     save_metadata(run_location, G, total_connections, forbidden_connections, intrasubnet_connections, intersubnet_connections, sampled_connections)
 
     if args.early_break == 'communication':
-        save_generated(run_location=run_location, run_label=run_label, generated_graph=G, generated_packets=generated_packets, sampled_connections=sampled_connections)
+        save_generated(run_location=run_location, run_label=run_label, generated_graph=G, subnet_graph=subnet_graph, generated_packets=generated_packets, sampled_connections=sampled_connections)
         return
 
     print(f'Start Generation Step "security"')
 
-    routers = [router for router, data in G.nodes(data=True) if data['role'] == EDeviceRole.ROUTER]
-
-    router_connections = DefaultDict(list)
-    for source, target, p, sport, dport in ruleset_connections:
-        affected_routers = [router for router in routers if any(router in path for path in shortest_simple_paths(G, source, target))]
-        for router in affected_routers:
-            router_connections[router].append((G.nodes[source]['ip'], G.nodes[target]['ip'], p, sport, dport))
-
     router_ruleset_map = {}
     network_configuration_generator = NetworkConfigurationGenerator(config.seed_config.security_seed.current)
-    for router in router_connections.keys():
-        raw_ruleset = network_configuration_generator.generate_ruleset(router_connections[router], config.security_config.ruleset_anomaly_count.current, config.security_config.stateful_percentage.current)
+    for router, connections in network_configuration_generator.get_affected_routers(G, subnet_graph, ruleset_connections).items():
+        raw_ruleset = network_configuration_generator.generate_ruleset(connections, config.security_config.ruleset_anomaly_count.current, config.security_config.stateful_percentage.current)
         G.nodes[router]['ruleset'] = [NetworkConfigurationGenerator.rule_to_str(rule) for rule in raw_ruleset]
         router_ruleset_map[router] = [{'int' : NetworkConfigurationGenerator.to_numerical_representation(rule), 'str' : NetworkConfigurationGenerator.rule_to_str(rule)} for rule in raw_ruleset]
     
-    save_generated(run_location=run_location, run_label=run_label, generated_graph=G, generated_packets=generated_packets, router_ruleset_map=router_ruleset_map, sampled_connections=sampled_connections)
+    save_generated(run_location=run_location, run_label=run_label, generated_graph=G, subnet_graph=subnet_graph, generated_packets=generated_packets, router_ruleset_map=router_ruleset_map, sampled_connections=sampled_connections)
 
 print('-' * ceil((TERMINAL_WIDTH - 12) / 2), 'Welcome to', '-' * ceil((TERMINAL_WIDTH - 12) / 2))
 print('  ___     _  _ ___ ___ ___ ___     _   ___ ')
@@ -215,7 +226,7 @@ elif choice == 'g':
     config_name = 'tag_rerun_config'
     config : GenerationConfig = GenerationConfig.from_str(args.genesis_tag)
 else:
-    config_name = 'example_config'
+    config_name = 'example'
     config_file = load_resource('configurations', f'{config_name}.json')
     config : GenerationConfig = GenerationConfig.from_file(config_file)
 

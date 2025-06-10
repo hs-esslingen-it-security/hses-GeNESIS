@@ -23,7 +23,8 @@ license-files = ["LICENSE.md"]
 dependencies = [
     "matplotlib",
     "networkx",
-    "scipy"
+    "scipy",
+    "pandas"
 ]
 
 [project.urls]
